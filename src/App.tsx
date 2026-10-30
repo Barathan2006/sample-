@@ -89,7 +89,7 @@ export default function App() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-neutral-950 hover:bg-neutral-100 text-xs font-semibold shadow-lg cursor-pointer transition-all hover:scale-105"
             >
               <Plus size={14} />
-              <span>Add Memory</span>
+              <span>Upload Photo from Laptop</span>
             </button>
           </div>
         </div>
@@ -103,6 +103,7 @@ export default function App() {
         onToggleSound={handleToggleSound}
         isSoundEnabled={isSoundEnabled}
         onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenAddMemory={() => setIsAddModalOpen(true)}
         totalMemoriesCount={photos.length}
       />
 

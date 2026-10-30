@@ -212,6 +212,13 @@ export function saveStoredPhotos(photos: MemoryPhoto[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(photos));
   } catch (e) {
-    console.error('Failed to save photos to localStorage', e);
+    console.warn('LocalStorage quota limit reached, saving trimmed list:', e);
+    try {
+      // If saving full list with large images exceeds quota, store the most recent custom photos
+      const trimmed = photos.slice(0, 10);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      // Keep working in memory state without interrupting user experience
+    }
   }
 }

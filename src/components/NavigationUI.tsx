@@ -12,7 +12,8 @@ import {
   HelpCircle,
   Home,
   Sparkles,
-  Layers
+  Layers,
+  Plus
 } from 'lucide-react';
 
 interface NavigationUIProps {
@@ -22,6 +23,7 @@ interface NavigationUIProps {
   onToggleSound?: () => void;
   isSoundEnabled?: boolean;
   onOpenAbout?: () => void;
+  onOpenAddMemory?: () => void;
   totalMemoriesCount?: number;
 }
 
@@ -32,6 +34,7 @@ export const NavigationUI: React.FC<NavigationUIProps> = ({
   onToggleSound,
   isSoundEnabled = false,
   onOpenAbout,
+  onOpenAddMemory,
   totalMemoriesCount = 10
 }) => {
   const [showGuide, setShowGuide] = useState(false);
@@ -95,6 +98,17 @@ export const NavigationUI: React.FC<NavigationUIProps> = ({
               className="pointer-events-auto p-2.5 rounded-xl bg-neutral-950/75 border border-white/10 text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer shadow-lg"
             >
               {isSoundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
+
+          {onOpenAddMemory && (
+            <button
+              onClick={onOpenAddMemory}
+              title="Add photo from laptop to Room 01"
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-neutral-950 font-semibold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Plus size={15} />
+              <span>Add Photo</span>
             </button>
           )}
 

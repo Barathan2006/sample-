@@ -36,7 +36,6 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  // References for mutable state accessed inside render loop
   const stateRef = useRef({
     currentRoomId,
     targetCamPos: new THREE.Vector3(...CORRIDOR_CONFIG.cameraDefaultPos),
@@ -57,6 +56,20 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     hoveredPhotoId: null as string | null,
     roomGates: [] as RoomDoorGate[],
   });
+
+  const mountedPhotoIdsRef = useRef<Set<string>>(new Set());
+  const addPhotoToSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
+
+  // Dynamically sync newly added photos into the live 3D Room 01 scene
+  useEffect(() => {
+    if (addPhotoToSceneRef.current) {
+      photos.forEach((p) => {
+        if (!mountedPhotoIdsRef.current.has(p.id) && p.type !== 'pedestal') {
+          addPhotoToSceneRef.current?.(p);
+        }
+      });
+    }
+  }, [photos]);
 
   // Sync currentRoomId into stateRef
   useEffect(() => {
@@ -739,14 +752,18 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         rotSpeed: 0.15,
       });
 
-      // 3. Wall Frames & Floating Frames
-      photoList.forEach((photo) => {
-        if (photo.type === 'pedestal') return; // already handled on center pedestal
+      // 3. Dynamic Wall Frames & Floating Frames
+      const dynamicPhotosGroup = new THREE.Group();
+      parent.add(dynamicPhotosGroup);
+
+      const addPhotoFrame = (photo: MemoryPhoto) => {
+        if (mountedPhotoIdsRef.current.has(photo.id)) return;
+        mountedPhotoIdsRef.current.add(photo.id);
 
         const frameGroup = createPhotoFrameMesh(photo, false);
         frameGroup.position.set(...photo.worldPosition);
         frameGroup.rotation.set(...photo.worldRotation);
-        parent.add(frameGroup);
+        dynamicPhotosGroup.add(frameGroup);
 
         if (photo.type === 'floating') {
           floatingMeshObjects.push({
@@ -756,6 +773,13 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
             rotSpeed: 0.05,
           });
         }
+      };
+
+      addPhotoToSceneRef.current = addPhotoFrame;
+
+      photoList.forEach((photo) => {
+        if (photo.type === 'pedestal') return; // already handled on center pedestal
+        addPhotoFrame(photo);
       });
     }
 
@@ -1139,6 +1163,8 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       wallMaterial.dispose();
       floorMaterial.dispose();
       ceilingMaterial.dispose();
+      mountedPhotoIdsRef.current.clear();
+      addPhotoToSceneRef.current = null;
     };
   }, []);
 
