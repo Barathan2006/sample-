@@ -199,7 +199,7 @@ export function createBladeNumberTexture(numberStr: string): THREE.CanvasTexture
 }
 
 /**
- * Creates fallback procedural photograph for memory frames with white-shaded monochrome architectural art styling
+ * Creates fallback procedural photograph for memory frames with vibrant gallery art colors
  */
 export function createFallbackPhotoTexture(title: string, category: string): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -207,32 +207,52 @@ export function createFallbackPhotoTexture(title: string, category: string): THR
   canvas.height = 450;
   const ctx = canvas.getContext('2d')!;
 
-  // High-key white-shaded monochrome gradient
+  // Vibrant rich gallery gradient
   const grad = ctx.createLinearGradient(0, 0, 600, 450);
-  grad.addColorStop(0, '#e5e7eb');
-  grad.addColorStop(0.5, '#f3f4f6');
-  grad.addColorStop(1, '#d1d5db');
+  if (category === 'Nature') {
+    grad.addColorStop(0, '#0f3d2e');
+    grad.addColorStop(0.5, '#1e6f5c');
+    grad.addColorStop(1, '#e8aa42');
+  } else if (category === 'Travel') {
+    grad.addColorStop(0, '#1a365d');
+    grad.addColorStop(0.5, '#2b6cb0');
+    grad.addColorStop(1, '#f6ad55');
+  } else {
+    grad.addColorStop(0, '#2d1b4e');
+    grad.addColorStop(0.5, '#6b21a8');
+    grad.addColorStop(1, '#f43f5e');
+  }
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 600, 450);
 
+  // Atmospheric sun/horizon glow
+  const glowGrad = ctx.createRadialGradient(420, 160, 20, 420, 160, 280);
+  glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+  glowGrad.addColorStop(0.5, 'rgba(255, 230, 180, 0.25)');
+  glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(0, 0, 600, 450);
+
   // Subtle architectural geometric silhouettes
-  ctx.fillStyle = 'rgba(75, 85, 99, 0.15)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
   ctx.beginPath();
-  ctx.arc(300, 390, 200, 0, Math.PI * 2);
+  ctx.arc(300, 420, 220, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(156, 163, 175, 0.25)';
-  ctx.fillRect(80, 160, 440, 200);
+  // Category Tag in crisp white with soft pill background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.fillRect(32, 28, 220, 36);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 15px "Space Grotesk", sans-serif';
+  ctx.fillText(category.toUpperCase() + ' • GALLERY PRINT', 42, 52);
 
-  // Category Tag in refined dark slate
-  ctx.fillStyle = '#4b5563';
-  ctx.font = '600 16px "Space Grotesk", sans-serif';
-  ctx.fillText(category.toUpperCase() + ' • MONOCHROME PRINT', 40, 60);
-
-  // Title in deep charcoal
-  ctx.fillStyle = '#1f2937';
-  ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(title, 40, 395);
+  // Title in vibrant clean white with drop shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(title, 36, 400);
+  ctx.shadowBlur = 0;
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -240,77 +260,104 @@ export function createFallbackPhotoTexture(title: string, category: string): THR
 }
 
 /**
- * Loads any photo and processes it into high-key white-shaded monochrome architectural print
+ * Loads any photo in its true, full vivid color with standard physical shading
  */
-export function loadWhiteShadedTexture(
+export function loadColorPhotoTexture(
   imageUrl: string,
-  onLoad: (texture: THREE.CanvasTexture) => void,
+  onLoad: (texture: THREE.Texture) => void,
   onError?: () => void
 ): void {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-
-  img.onload = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width || 800;
-      canvas.height = img.naturalHeight || img.height || 600;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        onError?.();
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      // Transform all colors into white-shaded architectural monochrome (high-key print)
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        // Perceptual luminance calculation
-        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        // High-key curve: preserves delicate detail, lifts shadows to soft slate/graphite, highlights to pure warm white
-        const norm = lum / 255;
-        const shaded = Math.min(255, Math.max(0, Math.round(52 + Math.pow(norm, 0.82) * 203)));
-
-        data[i] = shaded;
-        data[i + 1] = shaded;
-        data[i + 2] = shaded;
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-
-      const texture = new THREE.CanvasTexture(canvas);
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  loader.load(
+    imageUrl,
+    (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.minFilter = THREE.LinearMipmapLinearFilter;
       texture.magFilter = THREE.LinearFilter;
       texture.generateMipmaps = true;
       texture.needsUpdate = true;
       onLoad(texture);
-    } catch {
-      // If canvas tainted by CORS, fallback to standard loader with white-tint material
-      const fallbackLoader = new THREE.TextureLoader();
-      fallbackLoader.setCrossOrigin('anonymous');
-      fallbackLoader.load(
-        imageUrl,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          onLoad(tex as unknown as THREE.CanvasTexture);
-        },
-        undefined,
-        onError
-      );
+    },
+    undefined,
+    () => {
+      // If error occurs, call onError
+      onError?.();
     }
-  };
+  );
+}
 
-  img.onerror = () => {
-    onError?.();
-  };
+// Keep loadWhiteShadedTexture alias for backwards compatibility, pointing to full color loader
+export const loadWhiteShadedTexture = loadColorPhotoTexture;
 
-  img.src = imageUrl;
+/**
+ * Creates high-contrast eye-level door placard (mounted on wall beside door at Y = 1.68m)
+ */
+export function createEyeLevelPlacardTexture(
+  numberStr: string,
+  titleStr: string,
+  statusStr: string,
+  isHovered = false
+): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+
+  // Deep obsidian luxury architectural plaque background
+  ctx.fillStyle = isHovered ? '#1a1d24' : '#0c0d11';
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // Elegant chamfered border
+  ctx.strokeStyle = isHovered ? 'rgba(52, 211, 153, 0.9)' : 'rgba(255, 255, 255, 0.22)';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(16, 16, 992, 480);
+
+  // Status indicator accent bar
+  const isActive = statusStr.toLowerCase().includes('active');
+  ctx.fillStyle = isActive ? '#34d399' : '#60a5fa';
+  ctx.fillRect(36, 44, 16, 424);
+
+  // "ROOM" Header
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 38px "Space Grotesk", monospace, sans-serif';
+  ctx.fillText('ROOM', 80, 120);
+
+  // Room Number (Large, high-impact)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 136px "Space Grotesk", monospace, sans-serif';
+  ctx.fillText(numberStr, 220, 140);
+
+  // Status Badge
+  ctx.fillStyle = isActive ? 'rgba(52, 211, 153, 0.22)' : 'rgba(96, 165, 250, 0.2)';
+  ctx.fillRect(640, 60, 330, 68);
+  ctx.strokeStyle = isActive ? '#34d399' : '#60a5fa';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(640, 60, 330, 68);
+
+  ctx.fillStyle = isActive ? '#34d399' : '#93c5fd';
+  ctx.font = '700 28px "Space Grotesk", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(isActive ? '● OPEN GALLERY' : '● COMING SOON', 805, 104);
+  ctx.textAlign = 'left';
+
+  // Divider line
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+  ctx.fillRect(80, 195, 890, 4);
+
+  // Room Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 58px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(titleStr.toUpperCase(), 80, 290);
+
+  // Action CTA
+  ctx.fillStyle = isActive ? '#34d399' : '#cbd5e1';
+  ctx.font = '700 36px "Space Grotesk", sans-serif';
+  ctx.fillText(isActive ? 'CLICK DOOR TO OPEN & ENTER ➔' : 'SPACE UNDER CURATION', 80, 400);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 /**

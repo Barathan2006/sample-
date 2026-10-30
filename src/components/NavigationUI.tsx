@@ -101,7 +101,7 @@ export const NavigationUI: React.FC<NavigationUIProps> = ({
             </button>
           )}
 
-          {onOpenAddMemory && (
+          {onOpenAddMemory && activeRoom?.id === 'room-01' && (
             <button
               onClick={onOpenAddMemory}
               title="Add photo from laptop to Room 01"

@@ -10,7 +10,8 @@ import {
   createBladeNumberTexture,
   createFallbackPhotoTexture, 
   createAlbumCoverTexture,
-  loadWhiteShadedTexture
+  loadColorPhotoTexture,
+  createEyeLevelPlacardTexture
 } from '../utils/proceduralTextures';
 import { audioSynthesizer } from '../utils/audioSynthesizer';
 
@@ -209,6 +210,9 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       color: 0x1e2026,
       roughness: 0.3,
       metalness: 0.7,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     });
 
     const frameWoodMaterial = new THREE.MeshStandardMaterial({
@@ -219,12 +223,10 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
 
     const glassMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      roughness: 0.1,
-      metalness: 0.1,
-      transmission: isSoftwareGl ? 0 : 0.88,
+      roughness: 0.05,
+      metalness: 0.05,
       transparent: true,
-      opacity: isSoftwareGl ? 0.3 : 0.95,
-      ior: 1.5,
+      opacity: 0.08,
       depthWrite: false,
     });
 
@@ -304,14 +306,15 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     // Corridor Side Walls with precise doorway openings for the 6 rooms
     // We build wall segments along Left (X = -corrWidth/2) and Right (X = corrWidth/2)
     const doorwayWidth = 2.4;
-    const doorwayHeight = 3.2;
+    const doorwayHeight = 3.0;
 
     const buildCorridorWallWithDoorways = (
       side: 'left' | 'right',
       doorwayZs: { z: number; roomId: string; roomNum: string; roomTitle: string; status: string }[]
     ) => {
       const wallX = side === 'left' ? -corrWidth / 2 : corrWidth / 2;
-      const sortedZs = [...doorwayZs].sort((a, b) => b.z - a.z); // from start to end
+      const innerFaceX = side === 'left' ? wallX + 0.15 : wallX - 0.15;
+      const sortedZs = [...doorwayZs].sort((a, b) => b.z - a.z); // from entrance to far end
 
       let currentZ = CORRIDOR_CONFIG.corridorStart;
 
@@ -329,62 +332,103 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
           corridorGroup.add(segMesh);
         }
 
-        // Top lintel above doorway
+        // Top lintel above doorway (cleanly positioned above doorwayHeight, no overlap with wall)
         const lintelHeight = corrHeight - doorwayHeight;
         const lintelGeo = new THREE.BoxGeometry(0.3, lintelHeight, doorwayWidth);
         const lintelMesh = new THREE.Mesh(lintelGeo, wallMaterial);
         lintelMesh.position.set(wallX, doorwayHeight + lintelHeight / 2, door.z);
         lintelMesh.castShadow = true;
+        lintelMesh.receiveShadow = true;
         corridorGroup.add(lintelMesh);
 
-        // Architectural Door Architrave / Trim
-        const architraveGeo = new THREE.BoxGeometry(0.35, doorwayHeight + 0.1, 0.1);
-        const archLeft = new THREE.Mesh(architraveGeo, trimMaterial);
-        archLeft.position.set(wallX, doorwayHeight / 2, door.z + doorwayWidth / 2);
-        corridorGroup.add(archLeft);
+        // Architectural Doorway Jamb Liners (lining the inside jambs, zero volume overlap)
+        const jambDepth = 0.06;
+        const jambWidth = 0.31;
+        const jambGeo = new THREE.BoxGeometry(jambWidth, doorwayHeight, jambDepth);
 
-        const archRight = new THREE.Mesh(architraveGeo, trimMaterial);
-        archRight.position.set(wallX, doorwayHeight / 2, door.z - doorwayWidth / 2);
-        corridorGroup.add(archRight);
+        const jambNorth = new THREE.Mesh(jambGeo, trimMaterial);
+        jambNorth.position.set(wallX, doorwayHeight / 2, door.z + doorwayWidth / 2 - jambDepth / 2);
+        corridorGroup.add(jambNorth);
 
-        const archTopGeo = new THREE.BoxGeometry(0.35, 0.1, doorwayWidth + 0.2);
-        const archTop = new THREE.Mesh(archTopGeo, trimMaterial);
-        archTop.position.set(wallX, doorwayHeight + 0.05, door.z);
-        corridorGroup.add(archTop);
+        const jambSouth = new THREE.Mesh(jambGeo, trimMaterial);
+        jambSouth.position.set(wallX, doorwayHeight / 2, door.z - doorwayWidth / 2 + jambDepth / 2);
+        corridorGroup.add(jambSouth);
 
-        // Floor threshold strip
-        const threshGeo = new THREE.BoxGeometry(0.4, 0.03, doorwayWidth);
+        const headJambGeo = new THREE.BoxGeometry(jambWidth, jambDepth, doorwayWidth - jambDepth * 2);
+        const headJamb = new THREE.Mesh(headJambGeo, trimMaterial);
+        headJamb.position.set(wallX, doorwayHeight - jambDepth / 2, door.z);
+        corridorGroup.add(headJamb);
+
+        // Floor threshold strip (slightly proud of floor, no z-fighting)
+        const threshGeo = new THREE.BoxGeometry(0.32, 0.02, doorwayWidth - jambDepth * 2);
         const thresh = new THREE.Mesh(threshGeo, trimMaterial);
-        thresh.position.set(wallX, 0.015, door.z);
+        thresh.position.set(wallX, 0.01, door.z);
         corridorGroup.add(thresh);
 
-        // 1. Large Illuminated Doorway Signage Plaque (Directly above the doorway lintel)
+        // 1. Eye-Level Architectural Wall Placard (Mounted at Y = 1.68m, directly at eye height)
+        // Solves the issue where door signs were previously cut off at top of screen
+        const eyeLevelTex = createEyeLevelPlacardTexture(door.roomNum, door.roomTitle, door.status, false);
+        const plaqueZ = door.z + (doorwayWidth / 2 + 0.65);
+        const plaqueY = 1.68;
+        const plaqueCoreX = side === 'left' ? innerFaceX + 0.015 : innerFaceX - 0.015;
+        const plaqueFaceX = side === 'left' ? innerFaceX + 0.028 : innerFaceX - 0.028;
+
+        const plaqueBackGeo = new THREE.BoxGeometry(0.025, 0.48, 0.88);
+        const plaqueBackMat = new THREE.MeshStandardMaterial({
+          color: 0x111317,
+          roughness: 0.35,
+          metalness: 0.3,
+        });
+        const plaqueBack = new THREE.Mesh(plaqueBackGeo, plaqueBackMat);
+        plaqueBack.position.set(plaqueCoreX, plaqueY, plaqueZ);
+        corridorGroup.add(plaqueBack);
+
+        const plaqueFaceGeo = new THREE.PlaneGeometry(0.85, 0.45);
+        const plaqueFaceMat = new THREE.MeshBasicMaterial({
+          map: eyeLevelTex,
+          polygonOffset: true,
+          polygonOffsetFactor: -3,
+          polygonOffsetUnits: -3,
+        });
+        const plaqueFace = new THREE.Mesh(plaqueFaceGeo, plaqueFaceMat);
+        plaqueFace.position.set(plaqueFaceX, plaqueY, plaqueZ);
+        plaqueFace.rotation.y = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
+        corridorGroup.add(plaqueFace);
+
+        // Dedicated architectural sconce downlight above eye-level placard
+        const sconceLight = new THREE.PointLight(0xfff5e6, 0.9, 4.0);
+        sconceLight.position.set(side === 'left' ? -2.95 : 2.95, plaqueY + 0.38, plaqueZ);
+        corridorGroup.add(sconceLight);
+
+        // 2. Overhead Lintel Plaque (Mounted cleanly on corridor face of the lintel)
         const signTex = createSignageTexture(door.roomNum, door.roomTitle, door.status, false);
-        const signBoxGeo = new THREE.BoxGeometry(0.04, 0.72, 2.0);
+        const overheadY = doorwayHeight + 0.42;
+        const overheadBoxX = side === 'left' ? innerFaceX + 0.015 : innerFaceX - 0.015;
+        const overheadFaceX = side === 'left' ? innerFaceX + 0.028 : innerFaceX - 0.028;
+
+        const signBoxGeo = new THREE.BoxGeometry(0.025, 0.65, 1.95);
         const signBoxMat = new THREE.MeshStandardMaterial({
           color: 0x111317,
           roughness: 0.4,
-          metalness: 0.2
+          metalness: 0.2,
         });
         const signBox = new THREE.Mesh(signBoxGeo, signBoxMat);
-        const signBoxX = side === 'left' ? -3.34 : 3.34;
-        const signFaceX = side === 'left' ? -3.308 : 3.308;
-        signBox.position.set(signBoxX, doorwayHeight + 0.48, door.z);
+        signBox.position.set(overheadBoxX, overheadY, door.z);
         corridorGroup.add(signBox);
 
-        const signGeo = new THREE.PlaneGeometry(1.96, 0.68);
+        const signGeo = new THREE.PlaneGeometry(1.9, 0.6);
         const signMat = new THREE.MeshBasicMaterial({
           map: signTex,
           polygonOffset: true,
-          polygonOffsetFactor: -2,
-          polygonOffsetUnits: -2,
+          polygonOffsetFactor: -3,
+          polygonOffsetUnits: -3,
         });
         const signMesh = new THREE.Mesh(signGeo, signMat);
-        signMesh.position.set(signFaceX, doorwayHeight + 0.48, door.z);
+        signMesh.position.set(overheadFaceX, overheadY, door.z);
         signMesh.rotation.y = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
         corridorGroup.add(signMesh);
 
-        // 2. Projecting Blade Plaque (Sticks out into corridor beside door, visible from far down hallway)
+        // 3. Projecting Blade Plaque (Sticks out into corridor beside door, visible from far down hallway)
         const bladeTex = createBladeNumberTexture(door.roomNum);
         const bladeMat = new THREE.MeshBasicMaterial({
           map: bladeTex,
@@ -393,80 +437,79 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
           polygonOffsetUnits: -2,
         });
         const bladeZ = door.z + (doorwayWidth / 2 + 0.35);
-        const bladeY = 2.4;
-        const bladeX = side === 'left' ? -3.15 : 3.15;
+        const bladeY = 2.35;
+        const bladeX = side === 'left' ? -2.95 : 2.95;
 
         // Mounting bracket
-        const bracketGeo = new THREE.BoxGeometry(0.38, 0.04, 0.04);
+        const bracketGeo = new THREE.BoxGeometry(0.24, 0.04, 0.04);
         const bracketMesh = new THREE.Mesh(bracketGeo, trimMaterial);
-        bracketMesh.position.set(bladeX, bladeY + 0.22, bladeZ);
+        bracketMesh.position.set(side === 'left' ? -3.05 : 3.05, bladeY + 0.22, bladeZ);
         corridorGroup.add(bracketMesh);
 
         // Blade plate core
-        const bladeCoreGeo = new THREE.BoxGeometry(0.36, 0.44, 0.03);
+        const bladeCoreGeo = new THREE.BoxGeometry(0.04, 0.44, 0.36);
         const bladeCore = new THREE.Mesh(bladeCoreGeo, trimMaterial);
         bladeCore.position.set(bladeX, bladeY, bladeZ);
         corridorGroup.add(bladeCore);
 
-        // Front face (facing visitor coming from entrance towards -Z)
+        // Front face
         const bladeFrontGeo = new THREE.PlaneGeometry(0.35, 0.42);
         const bladeFront = new THREE.Mesh(bladeFrontGeo, bladeMat);
         bladeFront.position.set(bladeX, bladeY, bladeZ + 0.022);
         bladeFront.rotation.y = 0;
         corridorGroup.add(bladeFront);
 
-        // Back face (facing visitor coming back from corridor towards +Z)
+        // Back face
         const bladeBack = new THREE.Mesh(bladeFrontGeo, bladeMat);
         bladeBack.position.set(bladeX, bladeY, bladeZ - 0.022);
         bladeBack.rotation.y = Math.PI;
         corridorGroup.add(bladeBack);
 
-        // 3. Overhead Downlight for Doorway
+        // 4. Overhead Downlight for Doorway
         const doorSpot = new THREE.PointLight(0xfffaed, 0.9, 6);
-        doorSpot.position.set(side === 'left' ? -3.0 : 3.0, corrHeight - 0.2, door.z);
+        doorSpot.position.set(side === 'left' ? -2.9 : 2.9, corrHeight - 0.2, door.z);
         corridorGroup.add(doorSpot);
 
-        // 4. Architectural Gate with swinging hinge
+        // 5. Architectural Gate with swinging hinge (Deeply recessed, zero Z-fighting with wall)
         const hingeGroup = new THREE.Group();
-        const hingeX = side === 'left' ? wallX + 0.12 : wallX - 0.12;
-        const hingeZ = door.z + doorwayWidth / 2 - 0.04;
+        const hingeX = wallX; // Centered in the door jamb thickness
+        const hingeZ = door.z + doorwayWidth / 2 - 0.08;
         hingeGroup.position.set(hingeX, 0, hingeZ);
         corridorGroup.add(hingeGroup);
 
-        const doorWidth = doorwayWidth - 0.08;
+        const doorWidth = doorwayWidth - 0.14;
         const doorHeight = doorwayHeight - 0.06;
-        const doorThick = 0.07;
+        const doorThick = 0.06;
 
         const doorPanelGeo = new THREE.BoxGeometry(doorThick, doorHeight, doorWidth);
         const doorPanelMat = new THREE.MeshStandardMaterial({
-          color: 0xfcfcfd,
+          color: 0xf5f5f7,
           roughness: 0.35,
           metalness: 0.06,
         });
         const doorPanel = new THREE.Mesh(doorPanelGeo, doorPanelMat);
-        doorPanel.position.set(0, doorHeight / 2 + 0.02, -doorWidth / 2);
+        doorPanel.position.set(0, doorHeight / 2 + 0.015, -doorWidth / 2);
         doorPanel.castShadow = true;
         doorPanel.receiveShadow = true;
         hingeGroup.add(doorPanel);
 
         // Modern vertical black aluminum handle bar
-        const handleOffset = side === 'left' ? 0.055 : -0.055;
-        const handleGeo = new THREE.BoxGeometry(0.035, 1.35, 0.035);
+        const handleOffset = side === 'left' ? 0.05 : -0.05;
+        const handleGeo = new THREE.BoxGeometry(0.035, 1.25, 0.035);
         const handle = new THREE.Mesh(handleGeo, trimMaterial);
         handle.position.set(handleOffset, doorHeight / 2 - 0.1, -doorWidth + 0.22);
         hingeGroup.add(handle);
 
-        // Inset frosted glass vertical slit
-        const slitGeo = new THREE.BoxGeometry(doorThick + 0.015, 2.2, 0.08);
-        const slitMat = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          roughness: 0.2,
-          transparent: true,
-          opacity: 0.85,
+        // Architectural inset accent line (opaque, eliminates transparent rendering artifacts)
+        const revealGeo = new THREE.BoxGeometry(doorThick + 0.006, 2.1, 0.04);
+        const revealMat = new THREE.MeshStandardMaterial({
+          color: 0x1a1c22,
+          roughness: 0.4,
+          metalness: 0.3,
         });
-        const slitMesh = new THREE.Mesh(slitGeo, slitMat);
-        slitMesh.position.set(0, doorHeight / 2, -doorWidth / 2);
-        hingeGroup.add(slitMesh);
+        const revealMesh = new THREE.Mesh(revealGeo, revealMat);
+        revealMesh.position.set(0, doorHeight / 2, -doorWidth / 2 + 0.3);
+        hingeGroup.add(revealMesh);
 
         // Left doors swing inward +86 deg, Right doors swing inward -86 deg
         const openAngle = side === 'left' ? Math.PI * 0.48 : -Math.PI * 0.48;
@@ -480,11 +523,11 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         };
         roomGates.push(gateObj);
 
-        // 5. Interactive Doorway Hit Area (Raycasting trigger for clicks)
-        const hitGeo = new THREE.BoxGeometry(1.6, doorwayHeight + 0.8, doorwayWidth + 0.8);
+        // 6. Interactive Doorway Hit Area (Raycasting trigger for clicks)
+        const hitGeo = new THREE.BoxGeometry(1.6, doorwayHeight + 0.4, doorwayWidth + 0.4);
         const hitMat = new THREE.MeshBasicMaterial({ visible: false });
         const hitMesh = new THREE.Mesh(hitGeo, hitMat);
-        hitMesh.position.set(wallX, doorwayHeight / 2 + 0.4, door.z);
+        hitMesh.position.set(wallX, doorwayHeight / 2, door.z);
         corridorGroup.add(hitMesh);
 
         interactiveDoors.push({
@@ -494,6 +537,11 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         });
         interactiveDoors.push({
           mesh: doorPanel,
+          roomId: door.roomId,
+          signMesh,
+        });
+        interactiveDoors.push({
+          mesh: plaqueFace,
           roomId: door.roomId,
           signMesh,
         });
@@ -912,24 +960,24 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       matMesh.position.z = depth / 2 + 0.002;
       frameGroup.add(matMesh);
 
-      // Photo Canvas Texture - Processed as high-key white-shaded monochrome art print
+      // Photo Canvas Texture - Displayed in full vivid color with physical gallery illumination
       const fallbackTex = createFallbackPhotoTexture(photo.title, photo.category);
       const photoMaterial = new THREE.MeshStandardMaterial({
         map: fallbackTex,
-        roughness: 0.35,
-        metalness: 0.05,
-        color: new THREE.Color(0xfcfcfd),
+        roughness: 0.22,
+        metalness: 0.02,
+        color: new THREE.Color(0xffffff),
       });
 
-      // Load image and transform pixels into white-shaded monochrome print
-      loadWhiteShadedTexture(
+      // Load image in its true, vibrant colors
+      loadColorPhotoTexture(
         photo.imageUrl,
-        (whiteShadedTex) => {
-          photoMaterial.map = whiteShadedTex;
+        (colorTex) => {
+          photoMaterial.map = colorTex;
           photoMaterial.needsUpdate = true;
         },
         () => {
-          // Keep white-shaded procedural fallback
+          // Keep vibrant procedural fallback
         }
       );
 
@@ -979,7 +1027,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         // Spherical look rotation (full 360 yaw and wide vertical pitch)
         stateRef.current.targetDragYaw -= deltaX * 0.0035;
         stateRef.current.targetDragPitch -= deltaY * 0.003;
-        stateRef.current.targetDragPitch = Math.max(-1.15, Math.min(1.15, stateRef.current.targetDragPitch));
+        stateRef.current.targetDragPitch = Math.max(-1.35, Math.min(1.35, stateRef.current.targetDragPitch));
       }
 
       // Raycast check for hover state
@@ -1094,7 +1142,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
 
         stateRef.current.targetDragYaw -= deltaX * 0.004;
         stateRef.current.targetDragPitch -= deltaY * 0.003;
-        stateRef.current.targetDragPitch = Math.max(-1.15, Math.min(1.15, stateRef.current.targetDragPitch));
+        stateRef.current.targetDragPitch = Math.max(-1.35, Math.min(1.35, stateRef.current.targetDragPitch));
       }
     };
 
@@ -1102,7 +1150,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       stateRef.current.isPointerDown = false;
     };
 
-    // Touchpad / Mouse Wheel Scroll Navigation (Geosphere look + Corridor walk)
+    // Touchpad / Mouse Wheel Scroll Navigation (Corridor walk + View tilt)
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
 
@@ -1115,17 +1163,21 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       const activeId = stateRef.current.currentRoomId;
 
       if (!activeId) {
-        // In the main corridor:
-        // Scrolling forward (deltaY > 0) walks down the corridor past all rooms to Room 06
-        // Scrolling backward (deltaY < 0) walks back towards the entrance
-        if (Math.abs(e.deltaY) > 0) {
-          const moveZ = Math.max(-3.0, Math.min(3.0, e.deltaY * 0.03));
-          stateRef.current.corridorZ = Math.min(
-            5.0,
-            Math.max(-80.0, stateRef.current.corridorZ - moveZ)
-          );
+        // Holding Shift or Alt while scrolling tilts camera pitch UP and DOWN!
+        if (e.shiftKey || e.altKey) {
+          stateRef.current.targetDragPitch -= e.deltaY * 0.0025;
+          stateRef.current.targetDragPitch = Math.max(-1.35, Math.min(1.35, stateRef.current.targetDragPitch));
+        } else {
+          // Normal vertical scroll walks down the corridor:
+          if (Math.abs(e.deltaY) > 0) {
+            const moveZ = Math.max(-3.0, Math.min(3.0, e.deltaY * 0.03));
+            stateRef.current.corridorZ = Math.min(
+              5.0,
+              Math.max(-80.0, stateRef.current.corridorZ - moveZ)
+            );
 
-          stateRef.current.targetCamPos.set(0, 1.85, stateRef.current.corridorZ);
+            stateRef.current.targetCamPos.set(0, 1.85, stateRef.current.corridorZ);
+          }
         }
       } else if (activeId === 'room-01') {
         // Inside Room 01: subtle zoom inspection towards photo displays
@@ -1152,6 +1204,24 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       }
     };
 
+    // Keyboard navigation to easily tilt view upward/downward and turn
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      if (e.key === 'ArrowUp' || e.key === 'KeyW' || e.key === 'PageUp') {
+        stateRef.current.targetDragPitch = Math.min(1.35, stateRef.current.targetDragPitch + 0.15);
+      } else if (e.key === 'ArrowDown' || e.key === 'KeyS' || e.key === 'PageDown') {
+        stateRef.current.targetDragPitch = Math.max(-1.35, stateRef.current.targetDragPitch - 0.15);
+      } else if (e.key === 'ArrowLeft' || e.key === 'KeyA') {
+        stateRef.current.targetDragYaw += 0.15;
+      } else if (e.key === 'ArrowRight' || e.key === 'KeyD') {
+        stateRef.current.targetDragYaw -= 0.15;
+      } else if (e.key === 'Space') {
+        stateRef.current.targetDragPitch = 0;
+        stateRef.current.targetDragYaw = 0;
+      }
+    };
+
     container.addEventListener('mousemove', onPointerMove);
     container.addEventListener('mousedown', onPointerDown);
     window.addEventListener('mouseup', onPointerUp);
@@ -1159,6 +1229,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     container.addEventListener('touchmove', onTouchMove, { passive: true });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
     container.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKeyDown);
 
     // Handle Window Resize
     const onResize = () => {
@@ -1254,6 +1325,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       container.removeEventListener('touchmove', onTouchMove);
       container.removeEventListener('touchend', onTouchEnd);
       container.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onResize);
 
       if (renderer.domElement && container.contains(renderer.domElement)) {
@@ -1268,5 +1340,46 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     };
   }, []);
 
-  return <div ref={mountRef} className="w-full h-full relative cursor-grab active:cursor-grabbing" />;
+  return (
+    <div className="w-full h-full relative">
+      <div ref={mountRef} className="w-full h-full relative cursor-grab active:cursor-grabbing" />
+
+      {/* Floating Look Up / Look Down & Tilt Helper Bar */}
+      <div className="pointer-events-none fixed bottom-5 right-5 z-20 flex flex-col items-end gap-1.5">
+        <div className="pointer-events-auto flex items-center gap-1.5 p-1 rounded-2xl bg-neutral-950/85 border border-white/10 shadow-2xl backdrop-blur-md">
+          <button
+            onClick={() => {
+              stateRef.current.targetDragPitch = Math.min(1.35, stateRef.current.targetDragPitch + 0.28);
+            }}
+            title="Tilt camera upward to see room names and ceiling [↑]"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-medium cursor-pointer transition-colors"
+          >
+            <span>▲ Look Up</span>
+          </button>
+          <button
+            onClick={() => {
+              stateRef.current.targetDragPitch = Math.max(-1.35, stateRef.current.targetDragPitch - 0.28);
+            }}
+            title="Tilt camera downward [↓]"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-medium cursor-pointer transition-colors"
+          >
+            <span>▼ Look Down</span>
+          </button>
+          <button
+            onClick={() => {
+              stateRef.current.targetDragPitch = 0;
+              stateRef.current.targetDragYaw = 0;
+            }}
+            title="Reset look straight ahead [Space]"
+            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white text-xs cursor-pointer transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+        <div className="text-[10px] text-neutral-400 font-mono tracking-tight bg-neutral-950/70 px-2.5 py-0.5 rounded-full border border-white/5 backdrop-blur-sm">
+          [↑ / ↓] Tilt Look • [Shift + Scroll] Tilt • [Drag] Look
+        </div>
+      </div>
+    </div>
+  );
 };
