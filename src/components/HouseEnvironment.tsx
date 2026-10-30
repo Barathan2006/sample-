@@ -9,7 +9,8 @@ import {
   createSignageTexture, 
   createBladeNumberTexture,
   createFallbackPhotoTexture, 
-  createAlbumCoverTexture 
+  createAlbumCoverTexture,
+  loadWhiteShadedTexture
 } from '../utils/proceduralTextures';
 import { audioSynthesizer } from '../utils/audioSynthesizer';
 
@@ -128,7 +129,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 150);
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.25, 200);
     camera.position.set(...CORRIDOR_CONFIG.cameraDefaultPos);
     camera.lookAt(new THREE.Vector3(...CORRIDOR_CONFIG.cameraDefaultLookAt));
 
@@ -199,6 +200,9 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       color: 0xffffff,
       roughness: 0.9,
       metalness: 0.02,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     });
 
     const trimMaterial = new THREE.MeshStandardMaterial({
@@ -254,23 +258,24 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     corrFloor.receiveShadow = true;
     corridorGroup.add(corrFloor);
 
-    // Corridor Ceiling
-    const corrCeilGeo = new THREE.PlaneGeometry(corrWidth, corrLength);
+    // Corridor Ceiling (Sized to fit cleanly between inner walls without edge collision)
+    const corrCeilGeo = new THREE.PlaneGeometry(corrWidth - 0.7, corrLength);
     const corrCeil = new THREE.Mesh(corrCeilGeo, ceilingMaterial);
     corrCeil.rotation.x = Math.PI / 2;
-    corrCeil.position.set(0, corrHeight, corrCenterZ);
+    corrCeil.position.set(0, corrHeight - 0.005, corrCenterZ);
+    corrCeil.receiveShadow = false;
     corridorGroup.add(corrCeil);
 
-    // Ceiling Light Strips (Recessed down the center of corridor)
-    const lightStripGeo = new THREE.BoxGeometry(0.35, 0.04, corrLength);
+    // Ceiling Light Strips (Recessed cleanly beneath the ceiling surface)
+    const lightStripGeo = new THREE.BoxGeometry(0.35, 0.02, corrLength);
     const lightStrip = new THREE.Mesh(lightStripGeo, lightGlowMaterial);
-    lightStrip.position.set(0, corrHeight - 0.02, corrCenterZ);
+    lightStrip.position.set(0, corrHeight - 0.03, corrCenterZ);
     corridorGroup.add(lightStrip);
 
     // Recessed light slot border
-    const lightSlotTrimGeo = new THREE.BoxGeometry(0.45, 0.06, corrLength);
+    const lightSlotTrimGeo = new THREE.BoxGeometry(0.45, 0.035, corrLength);
     const lightSlotTrim = new THREE.Mesh(lightSlotTrimGeo, trimMaterial);
-    lightSlotTrim.position.set(0, corrHeight - 0.01, corrCenterZ);
+    lightSlotTrim.position.set(0, corrHeight - 0.02, corrCenterZ);
     corridorGroup.add(lightSlotTrim);
 
     // Corridor Entrance Wall (Z = CORRIDOR_CONFIG.corridorStart)
@@ -362,13 +367,17 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
           metalness: 0.2
         });
         const signBox = new THREE.Mesh(signBoxGeo, signBoxMat);
-        const signFaceX = side === 'left' ? -3.31 : 3.31;
-        signBox.position.set(side === 'left' ? -3.33 : 3.33, doorwayHeight + 0.48, door.z);
+        const signBoxX = side === 'left' ? -3.34 : 3.34;
+        const signFaceX = side === 'left' ? -3.308 : 3.308;
+        signBox.position.set(signBoxX, doorwayHeight + 0.48, door.z);
         corridorGroup.add(signBox);
 
         const signGeo = new THREE.PlaneGeometry(1.96, 0.68);
         const signMat = new THREE.MeshBasicMaterial({
           map: signTex,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+          polygonOffsetUnits: -2,
         });
         const signMesh = new THREE.Mesh(signGeo, signMat);
         signMesh.position.set(signFaceX, doorwayHeight + 0.48, door.z);
@@ -377,7 +386,12 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
 
         // 2. Projecting Blade Plaque (Sticks out into corridor beside door, visible from far down hallway)
         const bladeTex = createBladeNumberTexture(door.roomNum);
-        const bladeMat = new THREE.MeshBasicMaterial({ map: bladeTex });
+        const bladeMat = new THREE.MeshBasicMaterial({
+          map: bladeTex,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+          polygonOffsetUnits: -2,
+        });
         const bladeZ = door.z + (doorwayWidth / 2 + 0.35);
         const bladeY = 2.4;
         const bladeX = side === 'left' ? -3.15 : 3.15;
@@ -397,13 +411,13 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         // Front face (facing visitor coming from entrance towards -Z)
         const bladeFrontGeo = new THREE.PlaneGeometry(0.35, 0.42);
         const bladeFront = new THREE.Mesh(bladeFrontGeo, bladeMat);
-        bladeFront.position.set(bladeX, bladeY, bladeZ + 0.016);
+        bladeFront.position.set(bladeX, bladeY, bladeZ + 0.022);
         bladeFront.rotation.y = 0;
         corridorGroup.add(bladeFront);
 
         // Back face (facing visitor coming back from corridor towards +Z)
         const bladeBack = new THREE.Mesh(bladeFrontGeo, bladeMat);
-        bladeBack.position.set(bladeX, bladeY, bladeZ - 0.016);
+        bladeBack.position.set(bladeX, bladeY, bladeZ - 0.022);
         bladeBack.rotation.y = Math.PI;
         corridorGroup.add(bladeBack);
 
@@ -661,98 +675,18 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       // Rooms 02 to 06 are completely empty static architectural rooms
     });
 
-    // Helper: Build Room 01 (Photo Gallery, Pedestal Album & Floating Frames)
+    // Helper: Build Room 01 (Photo Gallery with Designer Lounge Sofa & Static Wall Mounted Frames)
     function buildRoom01Content(
       parent: THREE.Group,
       centerX: number,
       centerZ: number,
       photoList: MemoryPhoto[]
     ) {
-      // 1. Center Minimalist Sculptural Pedestal
-      const pedestalBaseGeo = new THREE.CylinderGeometry(1.6, 1.8, 0.8, 32);
-      const pedestalMat = new THREE.MeshStandardMaterial({
-        color: 0xfafafa,
-        roughness: 0.2,
-        metalness: 0.1,
-      });
-      const pedestalBase = new THREE.Mesh(pedestalBaseGeo, pedestalMat);
-      pedestalBase.position.set(centerX - 0.5, 0.4, centerZ);
-      pedestalBase.receiveShadow = true;
-      pedestalBase.castShadow = true;
-      parent.add(pedestalBase);
+      // 1. Contemporary Architectural Lounge Sofa & Coffee Table in center of Room 01
+      const sofa = createModernSofa(centerX, centerZ);
+      parent.add(sofa);
 
-      // Top marble platter
-      const platterGeo = new THREE.CylinderGeometry(1.7, 1.7, 0.06, 32);
-      const platterMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1c22,
-        roughness: 0.15,
-        metalness: 0.8,
-      });
-      const platter = new THREE.Mesh(platterGeo, platterMat);
-      platter.position.set(centerX - 0.5, 0.83, centerZ);
-      parent.add(platter);
-
-      // Soft contact shadow circle under pedestal
-      const shadowGeo = new THREE.RingGeometry(0.1, 2.2, 32);
-      const shadowMat = new THREE.MeshBasicMaterial({
-        color: 0x000000,
-        transparent: true,
-        opacity: 0.25,
-        depthWrite: false,
-      });
-      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-      shadowMesh.rotation.x = -Math.PI / 2;
-      shadowMesh.position.set(centerX - 0.5, 0.01, centerZ);
-      parent.add(shadowMesh);
-
-      // 2. Center 3D Floating Photo Album
-      const albumGroup = new THREE.Group();
-      albumGroup.position.set(centerX - 0.5, 1.15, centerZ);
-      parent.add(albumGroup);
-
-      // Procedural album book cover & open pages
-      const bookWidth = 1.3;
-      const bookDepth = 0.95;
-      const bookSpineGeo = new THREE.BoxGeometry(bookWidth * 0.1, 0.08, bookDepth);
-      const bookCoverMat = new THREE.MeshStandardMaterial({
-        map: createAlbumCoverTexture(),
-        roughness: 0.35,
-        metalness: 0.4,
-      });
-      const bookSpine = new THREE.Mesh(bookSpineGeo, bookCoverMat);
-      albumGroup.add(bookSpine);
-
-      // Left open page wing
-      const leftPageGeo = new THREE.BoxGeometry(bookWidth * 0.45, 0.04, bookDepth);
-      const leftPage = new THREE.Mesh(leftPageGeo, bookCoverMat);
-      leftPage.position.set(-bookWidth * 0.24, 0.04, 0);
-      leftPage.rotation.z = 0.12;
-      albumGroup.add(leftPage);
-
-      // Right open page wing
-      const rightPageGeo = new THREE.BoxGeometry(bookWidth * 0.45, 0.04, bookDepth);
-      const rightPage = new THREE.Mesh(rightPageGeo, bookCoverMat);
-      rightPage.position.set(bookWidth * 0.24, 0.04, 0);
-      rightPage.rotation.z = -0.12;
-      albumGroup.add(rightPage);
-
-      // Hero Center Photo mounted floating above book
-      const centerPhoto = photoList.find((p) => p.type === 'pedestal') || photoList[0];
-      if (centerPhoto) {
-        const heroPhotoGroup = createPhotoFrameMesh(centerPhoto, true);
-        heroPhotoGroup.position.set(0, 0.35, 0);
-        heroPhotoGroup.rotation.x = -0.15;
-        albumGroup.add(heroPhotoGroup);
-      }
-
-      floatingMeshObjects.push({
-        group: albumGroup,
-        baseY: 1.15,
-        phase: 0,
-        rotSpeed: 0.15,
-      });
-
-      // 3. Dynamic Wall Frames & Floating Frames
+      // 2. Static Wall Mounted Frames (All photos placed flush and static on the walls)
       const dynamicPhotosGroup = new THREE.Group();
       parent.add(dynamicPhotosGroup);
 
@@ -760,30 +694,199 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         if (mountedPhotoIdsRef.current.has(photo.id)) return;
         mountedPhotoIdsRef.current.add(photo.id);
 
-        const frameGroup = createPhotoFrameMesh(photo, false);
+        const frameGroup = createPhotoFrameMesh(photo, photo.id === 'photo-center-album');
         frameGroup.position.set(...photo.worldPosition);
         frameGroup.rotation.set(...photo.worldRotation);
         dynamicPhotosGroup.add(frameGroup);
-
-        if (photo.type === 'floating') {
-          floatingMeshObjects.push({
-            group: frameGroup,
-            baseY: photo.worldPosition[1],
-            phase: Math.random() * Math.PI * 2,
-            rotSpeed: 0.05,
-          });
-        }
+        // Photos are completely static on the walls - no bobbing or floating animation
       };
 
       addPhotoToSceneRef.current = addPhotoFrame;
 
       photoList.forEach((photo) => {
-        if (photo.type === 'pedestal') return; // already handled on center pedestal
         addPhotoFrame(photo);
       });
     }
 
-    // Helper: Create single 3D Photo Frame Object
+    // Helper: Build a realistic modern architectural sofa suite for Room 01
+    function createModernSofa(cx: number, cz: number): THREE.Group {
+      const sofaGroup = new THREE.Group();
+      // Position sofa in Room 01 lounge area, facing West toward the main gallery wall
+      sofaGroup.position.set(cx + 0.5, 0, cz);
+      sofaGroup.rotation.y = -Math.PI / 2;
+
+      // A. Large woven wool area rug
+      const rugGeo = new THREE.PlaneGeometry(3.6, 2.8);
+      const rugMat = new THREE.MeshStandardMaterial({
+        color: 0xeeece8,
+        roughness: 0.95,
+        metalness: 0.0,
+      });
+      const rug = new THREE.Mesh(rugGeo, rugMat);
+      rug.rotation.x = -Math.PI / 2;
+      rug.position.set(0, 0.008, 0.35);
+      rug.receiveShadow = true;
+      sofaGroup.add(rug);
+
+      // B. Sofa Wooden Plinth & 4 Tapered Metal Legs
+      const plinthMat = new THREE.MeshStandardMaterial({
+        color: 0x1f2127,
+        roughness: 0.45,
+        metalness: 0.3,
+      });
+      const plinthGeo = new THREE.BoxGeometry(2.6, 0.08, 1.05);
+      const plinth = new THREE.Mesh(plinthGeo, plinthMat);
+      plinth.position.set(0, 0.12, 0);
+      plinth.castShadow = true;
+      plinth.receiveShadow = true;
+      sofaGroup.add(plinth);
+
+      const legGeo = new THREE.CylinderGeometry(0.024, 0.016, 0.12, 16);
+      const legPositions = [
+        [-1.2, 0.06, 0.42],
+        [1.2, 0.06, 0.42],
+        [-1.2, 0.06, -0.42],
+        [1.2, 0.06, -0.42],
+      ];
+      legPositions.forEach(([lx, ly, lz]) => {
+        const leg = new THREE.Mesh(legGeo, plinthMat);
+        leg.position.set(lx, ly, lz);
+        leg.castShadow = true;
+        sofaGroup.add(leg);
+      });
+
+      // C. Off-White / Cream Boucle Linen Upholstery
+      const fabricMat = new THREE.MeshStandardMaterial({
+        color: 0xf5f4f0,
+        roughness: 0.88,
+        metalness: 0.02,
+      });
+
+      // Main seat base
+      const seatDeckGeo = new THREE.BoxGeometry(2.56, 0.18, 0.98);
+      const seatDeck = new THREE.Mesh(seatDeckGeo, fabricMat);
+      seatDeck.position.set(0, 0.25, 0);
+      seatDeck.castShadow = true;
+      seatDeck.receiveShadow = true;
+      sofaGroup.add(seatDeck);
+
+      // Two deep, plush seat cushions
+      const cushionGeo = new THREE.BoxGeometry(1.22, 0.14, 0.76);
+      const cushionLeft = new THREE.Mesh(cushionGeo, fabricMat);
+      cushionLeft.position.set(-0.63, 0.38, 0.08);
+      cushionLeft.castShadow = true;
+      sofaGroup.add(cushionLeft);
+
+      const cushionRight = new THREE.Mesh(cushionGeo, fabricMat);
+      cushionRight.position.set(0.63, 0.38, 0.08);
+      cushionRight.castShadow = true;
+      sofaGroup.add(cushionRight);
+
+      // Backrest Structure
+      const backrestGeo = new THREE.BoxGeometry(2.56, 0.46, 0.22);
+      const backrest = new THREE.Mesh(backrestGeo, fabricMat);
+      backrest.position.set(0, 0.55, -0.38);
+      backrest.castShadow = true;
+      sofaGroup.add(backrest);
+
+      // Two angled backrest cushions
+      const backCushionGeo = new THREE.BoxGeometry(1.2, 0.36, 0.14);
+      const backCushionL = new THREE.Mesh(backCushionGeo, fabricMat);
+      backCushionL.position.set(-0.62, 0.52, -0.24);
+      backCushionL.rotation.x = 0.08;
+      backCushionL.castShadow = true;
+      sofaGroup.add(backCushionL);
+
+      const backCushionR = new THREE.Mesh(backCushionGeo, fabricMat);
+      backCushionR.position.set(0.62, 0.52, -0.24);
+      backCushionR.rotation.x = 0.08;
+      backCushionR.castShadow = true;
+      sofaGroup.add(backCushionR);
+
+      // Left & Right Armrests
+      const armrestGeo = new THREE.BoxGeometry(0.18, 0.32, 0.98);
+      const armL = new THREE.Mesh(armrestGeo, fabricMat);
+      armL.position.set(-1.24, 0.42, 0);
+      armL.castShadow = true;
+      sofaGroup.add(armL);
+
+      const armR = new THREE.Mesh(armrestGeo, fabricMat);
+      armR.position.set(1.24, 0.42, 0);
+      armR.castShadow = true;
+      sofaGroup.add(armR);
+
+      // Accent Throw Pillows
+      const pillowMat1 = new THREE.MeshStandardMaterial({
+        color: 0x33363f, // Slate charcoal
+        roughness: 0.8,
+      });
+      const pillowMat2 = new THREE.MeshStandardMaterial({
+        color: 0xd6d2c4, // Warm sand
+        roughness: 0.8,
+      });
+
+      const pillowGeo = new THREE.BoxGeometry(0.42, 0.32, 0.12);
+      const pillowL = new THREE.Mesh(pillowGeo, pillowMat1);
+      pillowL.position.set(-1.0, 0.48, -0.15);
+      pillowL.rotation.y = 0.35;
+      pillowL.rotation.z = -0.1;
+      pillowL.castShadow = true;
+      sofaGroup.add(pillowL);
+
+      const pillowR = new THREE.Mesh(pillowGeo, pillowMat2);
+      pillowR.position.set(1.0, 0.48, -0.15);
+      pillowR.rotation.y = -0.35;
+      pillowR.rotation.z = 0.1;
+      pillowR.castShadow = true;
+      sofaGroup.add(pillowR);
+
+      // D. Minimalist Low Travertine Coffee Table
+      const tableGroup = new THREE.Group();
+      tableGroup.position.set(0, 0, 1.25);
+
+      const tableTopGeo = new THREE.BoxGeometry(1.4, 0.05, 0.65);
+      const tableTopMat = new THREE.MeshStandardMaterial({
+        color: 0xf0eee8,
+        roughness: 0.25,
+        metalness: 0.1,
+      });
+      const tableTop = new THREE.Mesh(tableTopGeo, tableTopMat);
+      tableTop.position.set(0, 0.32, 0);
+      tableTop.castShadow = true;
+      tableTop.receiveShadow = true;
+      tableGroup.add(tableTop);
+
+      const tableBaseGeo = new THREE.BoxGeometry(1.25, 0.28, 0.52);
+      const tableBaseMat = new THREE.MeshStandardMaterial({
+        color: 0x22242a,
+        roughness: 0.4,
+        metalness: 0.6,
+      });
+      const tableLegs = new THREE.Mesh(tableBaseGeo, tableBaseMat);
+      tableLegs.position.set(0, 0.15, 0);
+      tableGroup.add(tableLegs);
+
+      // Architectural art monograph books on table
+      const book1Geo = new THREE.BoxGeometry(0.28, 0.03, 0.36);
+      const book1Mat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.4 });
+      const book1 = new THREE.Mesh(book1Geo, book1Mat);
+      book1.position.set(-0.25, 0.36, 0.02);
+      book1.rotation.y = 0.15;
+      tableGroup.add(book1);
+
+      const book2Geo = new THREE.BoxGeometry(0.24, 0.025, 0.32);
+      const book2Mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+      const book2 = new THREE.Mesh(book2Geo, book2Mat);
+      book2.position.set(-0.23, 0.385, 0.03);
+      book2.rotation.y = 0.22;
+      tableGroup.add(book2);
+
+      sofaGroup.add(tableGroup);
+
+      return sofaGroup;
+    }
+
+    // Helper: Create single 3D Photo Frame Object (Monochrome White-Shaded Print)
     function createPhotoFrameMesh(photo: MemoryPhoto, isFeatured: boolean): THREE.Group {
       const frameGroup = new THREE.Group();
       const [width, height] = photo.size;
@@ -809,27 +912,24 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       matMesh.position.z = depth / 2 + 0.002;
       frameGroup.add(matMesh);
 
-      // Photo Canvas Texture (load async with procedural fallback)
+      // Photo Canvas Texture - Processed as high-key white-shaded monochrome art print
       const fallbackTex = createFallbackPhotoTexture(photo.title, photo.category);
       const photoMaterial = new THREE.MeshStandardMaterial({
         map: fallbackTex,
         roughness: 0.35,
         metalness: 0.05,
+        color: new THREE.Color(0xfcfcfd),
       });
 
-      // Async texture loader for the actual image
-      const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
+      // Load image and transform pixels into white-shaded monochrome print
+      loadWhiteShadedTexture(
         photo.imageUrl,
-        (loadedTex) => {
-          loadedTex.colorSpace = THREE.SRGBColorSpace;
-          photoMaterial.map = loadedTex;
+        (whiteShadedTex) => {
+          photoMaterial.map = whiteShadedTex;
           photoMaterial.needsUpdate = true;
         },
-        undefined,
         () => {
-          // Graceful fallback to procedural canvas
+          // Keep white-shaded procedural fallback
         }
       );
 

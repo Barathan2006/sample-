@@ -17,7 +17,7 @@ export interface MemoryPhoto {
 }
 
 export const INITIAL_PHOTOS: MemoryPhoto[] = [
-  // Center Floating Photo Album (Featured Hero)
+  // West Gallery Wall (Main architectural focal wall opposite doorway, X = -16.82)
   {
     id: 'photo-center-album',
     title: 'The Solitary Lighthouse at Dawn',
@@ -28,73 +28,10 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
     category: 'Travel',
     aspectRatio: 1.4,
-    type: 'pedestal',
-    worldPosition: [-11.5, 1.5, -14],
-    worldRotation: [-0.15, 0, 0],
-    size: [1.8, 1.3]
-  },
-  // Floating Memories (Gently floating around the room)
-  {
-    id: 'photo-float-01',
-    title: 'Autumn Rain in Kyoto',
-    date: 'November 22, 2023',
-    location: 'Gion, Kyoto, Japan',
-    description: 'Lanterns catching raindrops along the stone alleys of Gion. The aroma of roasted green tea drifted from wooden teahouses into the quiet evening air.',
-    cameraInfo: 'Fujifilm X-T5 • 23mm f/1.4 • Classic Chrome • ISO 400',
-    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=85',
-    category: 'Travel',
-    aspectRatio: 1.33,
-    type: 'floating',
-    worldPosition: [-9.8, 2.1, -12.3],
-    worldRotation: [0.08, -0.4, 0.05],
-    size: [1.3, 1.0]
-  },
-  {
-    id: 'photo-float-02',
-    title: 'The Golden Hour Atelier',
-    date: 'March 18, 2024',
-    location: 'SoHo, New York',
-    description: 'Afternoon sunbeams cutting through cast-iron floor-to-ceiling windows, casting geometric shadows across unfinished linen canvases and clay sculptures.',
-    cameraInfo: 'Contax G2 • 45mm Planar • Kodak Portra 400',
-    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1200&q=85',
-    category: 'Art',
-    aspectRatio: 1.25,
-    type: 'floating',
-    worldPosition: [-9.6, 2.1, -15.6],
-    worldRotation: [0.06, 0.45, -0.04],
-    size: [1.3, 1.0]
-  },
-  {
-    id: 'photo-float-03',
-    title: 'Serenade of the Pine Forest',
-    date: 'June 05, 2024',
-    location: 'Dolomites, Northern Italy',
-    description: 'Hiking beneath limestone pinnacles as morning dew evaporated from high alpine meadows. The air was crisp, tasting of cold rock and ancient pine needles.',
-    cameraInfo: 'Sony A7R V • 24-70mm GM II @ 35mm • ISO 100',
-    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
-    category: 'Nature',
-    aspectRatio: 1.45,
-    type: 'floating',
-    worldPosition: [-13.2, 2.3, -11.9],
-    worldRotation: [-0.05, -0.35, 0.03],
-    size: [1.4, 1.0]
-  },
-
-  // Back Wall Gallery (Facing the viewer as they look deep into Room 01, at X = -15.8)
-  {
-    id: 'photo-wall-01',
-    title: 'Minimalist Architecture in Copenhagen',
-    date: 'August 12, 2024',
-    location: 'Ørestad, Copenhagen',
-    description: 'Pristine concrete intersecting clean glass volumes. A study in geometric rhythm, Nordic natural daylight, and the beauty of negative space.',
-    cameraInfo: 'Hasselblad 907X • 45mm • ISO 64',
-    imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=85',
-    category: 'Architecture',
-    aspectRatio: 1.35,
     type: 'wall',
-    worldPosition: [-15.75, 2.6, -15.8],
+    worldPosition: [-16.82, 2.25, -14.0],
     worldRotation: [0, Math.PI / 2, 0],
-    size: [1.6, 1.2]
+    size: [2.0, 1.45]
   },
   {
     id: 'photo-wall-02',
@@ -107,9 +44,9 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     category: 'Travel',
     aspectRatio: 1.5,
     type: 'wall',
-    worldPosition: [-15.75, 2.6, -13.8],
+    worldPosition: [-16.82, 2.25, -16.6],
     worldRotation: [0, Math.PI / 2, 0],
-    size: [1.8, 1.2]
+    size: [1.6, 1.15]
   },
   {
     id: 'photo-wall-03',
@@ -122,26 +59,41 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     category: 'Nature',
     aspectRatio: 1.4,
     type: 'wall',
-    worldPosition: [-15.75, 2.6, -11.8],
+    worldPosition: [-16.82, 2.25, -11.4],
     worldRotation: [0, Math.PI / 2, 0],
     size: [1.6, 1.15]
   },
 
-  // Left Wall Gallery (Z = -8.7, Facing +Z towards center)
+  // North Gallery Wall (Mounted flush at Z = -9.18 facing inward)
   {
-    id: 'photo-wall-04',
-    title: 'Espresso & Old Bookstores',
-    date: 'January 15, 2024',
-    location: 'Saint-Germain-des-Prés, Paris',
-    description: 'Tucked away in a 200-year-old bookshop courtyard while winter drizzle touched the skylight. Pages of poetry, hot ceramic mug, and tranquil solitude.',
-    cameraInfo: 'Fujifilm X100V • 23mm f/2 • Classic Negative',
-    imageUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=85',
-    category: 'Moments',
-    aspectRatio: 1.3,
+    id: 'photo-float-01',
+    title: 'Autumn Rain in Kyoto',
+    date: 'November 22, 2023',
+    location: 'Gion, Kyoto, Japan',
+    description: 'Lanterns catching raindrops along the stone alleys of Gion. The aroma of roasted green tea drifted from wooden teahouses into the quiet evening air.',
+    cameraInfo: 'Fujifilm X-T5 • 23mm f/1.4 • Classic Chrome • ISO 400',
+    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=85',
+    category: 'Travel',
+    aspectRatio: 1.33,
     type: 'wall',
-    worldPosition: [-13.4, 2.3, -8.75],
+    worldPosition: [-14.5, 2.15, -9.18],
     worldRotation: [0, Math.PI, 0],
-    size: [1.5, 1.15]
+    size: [1.5, 1.1]
+  },
+  {
+    id: 'photo-float-02',
+    title: 'The Golden Hour Atelier',
+    date: 'March 18, 2024',
+    location: 'SoHo, New York',
+    description: 'Afternoon sunbeams cutting through cast-iron floor-to-ceiling windows, casting geometric shadows across unfinished linen canvases and clay sculptures.',
+    cameraInfo: 'Contax G2 • 45mm Planar • Kodak Portra 400',
+    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1200&q=85',
+    category: 'Art',
+    aspectRatio: 1.25,
+    type: 'wall',
+    worldPosition: [-11.5, 2.15, -9.18],
+    worldRotation: [0, Math.PI, 0],
+    size: [1.5, 1.1]
   },
   {
     id: 'photo-wall-05',
@@ -154,12 +106,27 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     category: 'Art',
     aspectRatio: 1.25,
     type: 'wall',
-    worldPosition: [-11.0, 2.3, -8.75],
+    worldPosition: [-8.5, 2.15, -9.18],
     worldRotation: [0, Math.PI, 0],
-    size: [1.4, 1.1]
+    size: [1.5, 1.1]
   },
 
-  // Right Wall Gallery (Z = -18.7, Facing -Z towards center)
+  // South Gallery Wall (Mounted flush at Z = -18.82 facing inward)
+  {
+    id: 'photo-float-03',
+    title: 'Serenade of the Pine Forest',
+    date: 'June 05, 2024',
+    location: 'Dolomites, Northern Italy',
+    description: 'Hiking beneath limestone pinnacles as morning dew evaporated from high alpine meadows. The air was crisp, tasting of cold rock and ancient pine needles.',
+    cameraInfo: 'Sony A7R V • 24-70mm GM II @ 35mm • ISO 100',
+    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
+    category: 'Nature',
+    aspectRatio: 1.45,
+    type: 'wall',
+    worldPosition: [-14.5, 2.15, -18.82],
+    worldRotation: [0, 0, 0],
+    size: [1.5, 1.1]
+  },
   {
     id: 'photo-wall-06',
     title: 'Stargazing at Joshua Tree',
@@ -171,7 +138,7 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     category: 'Nature',
     aspectRatio: 1.45,
     type: 'wall',
-    worldPosition: [-13.4, 2.3, -19.25],
+    worldPosition: [-11.5, 2.15, -18.82],
     worldRotation: [0, 0, 0],
     size: [1.5, 1.1]
   },
@@ -186,13 +153,45 @@ export const INITIAL_PHOTOS: MemoryPhoto[] = [
     category: 'Travel',
     aspectRatio: 1.4,
     type: 'wall',
-    worldPosition: [-11.0, 2.3, -19.25],
+    worldPosition: [-8.5, 2.15, -18.82],
     worldRotation: [0, 0, 0],
+    size: [1.5, 1.1]
+  },
+
+  // East Wall Portals (Flanking Doorway, mounted at X = -6.18 facing West)
+  {
+    id: 'photo-wall-01',
+    title: 'Minimalist Architecture in Copenhagen',
+    date: 'August 12, 2024',
+    location: 'Ørestad, Copenhagen',
+    description: 'Pristine concrete intersecting clean glass volumes. A study in geometric rhythm, Nordic natural daylight, and the beauty of negative space.',
+    cameraInfo: 'Hasselblad 907X • 45mm • ISO 64',
+    imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=85',
+    category: 'Architecture',
+    aspectRatio: 1.35,
+    type: 'wall',
+    worldPosition: [-6.18, 2.15, -11.0],
+    worldRotation: [0, -Math.PI / 2, 0],
+    size: [1.4, 1.05]
+  },
+  {
+    id: 'photo-wall-04',
+    title: 'Espresso & Old Bookstores',
+    date: 'January 15, 2024',
+    location: 'Saint-Germain-des-Prés, Paris',
+    description: 'Tucked away in a 200-year-old bookshop courtyard while winter drizzle touched the skylight. Pages of poetry, hot ceramic mug, and tranquil solitude.',
+    cameraInfo: 'Fujifilm X100V • 23mm f/2 • Classic Negative',
+    imageUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=85',
+    category: 'Moments',
+    aspectRatio: 1.3,
+    type: 'wall',
+    worldPosition: [-6.18, 2.15, -17.0],
+    worldRotation: [0, -Math.PI / 2, 0],
     size: [1.4, 1.05]
   }
 ];
 
-const STORAGE_KEY = 'memory_house_custom_photos_v1';
+const STORAGE_KEY = 'memory_house_custom_photos_v2';
 
 export function getStoredPhotos(): MemoryPhoto[] {
   try {

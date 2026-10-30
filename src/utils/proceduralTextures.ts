@@ -199,7 +199,7 @@ export function createBladeNumberTexture(numberStr: string): THREE.CanvasTexture
 }
 
 /**
- * Creates fallback procedural photograph for memory frames if image is loading
+ * Creates fallback procedural photograph for memory frames with white-shaded monochrome architectural art styling
  */
 export function createFallbackPhotoTexture(title: string, category: string): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -207,43 +207,110 @@ export function createFallbackPhotoTexture(title: string, category: string): THR
   canvas.height = 450;
   const ctx = canvas.getContext('2d')!;
 
-  // Elegant gradient
+  // High-key white-shaded monochrome gradient
   const grad = ctx.createLinearGradient(0, 0, 600, 450);
-  if (category === 'Travel') {
-    grad.addColorStop(0, '#1e3a5f');
-    grad.addColorStop(1, '#e0a96d');
-  } else if (category === 'Art') {
-    grad.addColorStop(0, '#2e1c3b');
-    grad.addColorStop(1, '#8f4f6e');
-  } else if (category === 'Nature') {
-    grad.addColorStop(0, '#173f35');
-    grad.addColorStop(1, '#5a8264');
-  } else {
-    grad.addColorStop(0, '#232931');
-    grad.addColorStop(1, '#4e5a65');
-  }
+  grad.addColorStop(0, '#e5e7eb');
+  grad.addColorStop(0.5, '#f3f4f6');
+  grad.addColorStop(1, '#d1d5db');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 600, 450);
 
-  // Subtle geometric horizon
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  // Subtle architectural geometric silhouettes
+  ctx.fillStyle = 'rgba(75, 85, 99, 0.15)';
   ctx.beginPath();
-  ctx.arc(300, 380, 180, 0, Math.PI * 2);
+  ctx.arc(300, 390, 200, 0, Math.PI * 2);
   ctx.fill();
 
-  // Category Tag
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '600 18px "Space Grotesk", sans-serif';
-  ctx.fillText(category.toUpperCase(), 40, 60);
+  ctx.fillStyle = 'rgba(156, 163, 175, 0.25)';
+  ctx.fillRect(80, 160, 440, 200);
 
-  // Title
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '600 28px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(title, 40, 400);
+  // Category Tag in refined dark slate
+  ctx.fillStyle = '#4b5563';
+  ctx.font = '600 16px "Space Grotesk", sans-serif';
+  ctx.fillText(category.toUpperCase() + ' • MONOCHROME PRINT', 40, 60);
+
+  // Title in deep charcoal
+  ctx.fillStyle = '#1f2937';
+  ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(title, 40, 395);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+/**
+ * Loads any photo and processes it into high-key white-shaded monochrome architectural print
+ */
+export function loadWhiteShadedTexture(
+  imageUrl: string,
+  onLoad: (texture: THREE.CanvasTexture) => void,
+  onError?: () => void
+): void {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  img.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width || 800;
+      canvas.height = img.naturalHeight || img.height || 600;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        onError?.();
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Transform all colors into white-shaded architectural monochrome (high-key print)
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        // Perceptual luminance calculation
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        // High-key curve: preserves delicate detail, lifts shadows to soft slate/graphite, highlights to pure warm white
+        const norm = lum / 255;
+        const shaded = Math.min(255, Math.max(0, Math.round(52 + Math.pow(norm, 0.82) * 203)));
+
+        data[i] = shaded;
+        data[i + 1] = shaded;
+        data[i + 2] = shaded;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
+      onLoad(texture);
+    } catch {
+      // If canvas tainted by CORS, fallback to standard loader with white-tint material
+      const fallbackLoader = new THREE.TextureLoader();
+      fallbackLoader.setCrossOrigin('anonymous');
+      fallbackLoader.load(
+        imageUrl,
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          onLoad(tex as unknown as THREE.CanvasTexture);
+        },
+        undefined,
+        onError
+      );
+    }
+  };
+
+  img.onerror = () => {
+    onError?.();
+  };
+
+  img.src = imageUrl;
 }
 
 /**
