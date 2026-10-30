@@ -1,0 +1,6 @@
+{
+  "name": "3D Interactive Memory House",
+  "description": "An immersive 3D minimalist white house with six interactive rooms in a zigzag corridor layout and an interactive 3D memory gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
