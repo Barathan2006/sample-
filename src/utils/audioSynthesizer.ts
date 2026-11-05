@@ -159,6 +159,76 @@ class AudioSynthesizer {
       // ignore
     }
   }
+
+  public playKeypadBeep(pitch: number = 700) {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.09);
+    } catch {
+      // ignore
+    }
+  }
+
+  public playAccessGranted() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      // Upward harmonic chime: C5 -> E5 -> G5 -> C6
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const startTime = this.ctx!.currentTime + idx * 0.09;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.001, startTime);
+        gain.gain.linearRampToValueAtTime(0.06, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.45);
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  public playAccessDenied() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      // Double low buzzer
+      [0, 0.15].forEach((offset) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const startTime = this.ctx!.currentTime + offset;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, startTime);
+        gain.gain.setValueAtTime(0.07, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.14);
+      });
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export const audioSynthesizer = new AudioSynthesizer();

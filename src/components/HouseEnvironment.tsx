@@ -28,13 +28,15 @@ interface HouseEnvironmentProps {
   onSelectRoom: (roomId: string) => void;
   onSelectPhoto: (photo: MemoryPhoto) => void;
   photos: MemoryPhoto[];
+  isRoom1Unlocked?: boolean;
 }
 
 export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
   currentRoomId,
   onSelectRoom,
   onSelectPhoto,
-  photos
+  photos,
+  isRoom1Unlocked = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -57,11 +59,24 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     hoveredDoorId: null as string | null,
     hoveredPhotoId: null as string | null,
     roomGates: [] as RoomDoorGate[],
+    isRoom1Unlocked: !!isRoom1Unlocked,
   });
 
   const mountedPhotoIdsRef = useRef<Set<string>>(new Set());
   const addPhotoToSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
   const updatePhotoInSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
+
+  // Sync isRoom1Unlocked into state and trigger gate swing
+  useEffect(() => {
+    stateRef.current.isRoom1Unlocked = !!isRoom1Unlocked;
+    if (isRoom1Unlocked) {
+      const room1Gate = stateRef.current.roomGates.find((g) => g.roomId === 'room-01');
+      if (room1Gate && !room1Gate.isOpen) {
+        room1Gate.isOpen = true;
+        audioSynthesizer.playDoorSwingOpen();
+      }
+    }
+  }, [isRoom1Unlocked]);
 
   // Dynamically sync newly added or changed/edited photos into the live 3D Room 01 scene
   useEffect(() => {
@@ -577,7 +592,9 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       roomId: r.id,
       roomNum: r.number,
       roomTitle: r.title,
-      status: r.status === 'active' ? 'ACTIVE' : 'COMING SOON',
+      status: r.id === 'room-01'
+        ? (stateRef.current.isRoom1Unlocked ? 'ACTIVE' : 'LOCKED (PASSCODE 2627)')
+        : r.status === 'active' ? 'ACTIVE' : 'COMING SOON',
     }));
 
     const rightDoors = ROOMS_DATA.filter((r) => r.side === 'right').map((r) => ({
@@ -1118,12 +1135,14 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         if (doorIntersects.length > 0) {
           const hitDoor = interactiveDoors.find((d) => d.mesh === doorIntersects[0].object);
           if (hitDoor) {
-            // Open the gate with swinging animation and sound
-            const gate = stateRef.current.roomGates.find((g) => g.roomId === hitDoor.roomId);
-            if (gate) {
-              gate.isOpen = true;
+            const isProtected = hitDoor.roomId === 'room-01' && !stateRef.current.isRoom1Unlocked;
+            if (!isProtected) {
+              const gate = stateRef.current.roomGates.find((g) => g.roomId === hitDoor.roomId);
+              if (gate) {
+                gate.isOpen = true;
+              }
+              audioSynthesizer.playDoorSwingOpen();
             }
-            audioSynthesizer.playDoorSwingOpen();
             onSelectRoom(hitDoor.roomId);
             return;
           }

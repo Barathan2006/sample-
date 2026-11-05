@@ -314,8 +314,9 @@ export function createEyeLevelPlacardTexture(
   ctx.strokeRect(16, 16, 992, 480);
 
   // Status indicator accent bar
-  const isActive = statusStr.toLowerCase().includes('active');
-  ctx.fillStyle = isActive ? '#34d399' : '#60a5fa';
+  const isLocked = statusStr.toLowerCase().includes('lock') || statusStr.toLowerCase().includes('passcode');
+  const isActive = !isLocked && (statusStr.toLowerCase().includes('active') || statusStr.toLowerCase().includes('open'));
+  ctx.fillStyle = isLocked ? '#f59e0b' : isActive ? '#34d399' : '#60a5fa';
   ctx.fillRect(36, 44, 16, 424);
 
   // "ROOM" Header
@@ -329,16 +330,16 @@ export function createEyeLevelPlacardTexture(
   ctx.fillText(numberStr, 220, 140);
 
   // Status Badge
-  ctx.fillStyle = isActive ? 'rgba(52, 211, 153, 0.22)' : 'rgba(96, 165, 250, 0.2)';
-  ctx.fillRect(640, 60, 330, 68);
-  ctx.strokeStyle = isActive ? '#34d399' : '#60a5fa';
+  ctx.fillStyle = isLocked ? 'rgba(245, 158, 11, 0.25)' : isActive ? 'rgba(52, 211, 153, 0.22)' : 'rgba(96, 165, 250, 0.2)';
+  ctx.fillRect(600, 60, 370, 68);
+  ctx.strokeStyle = isLocked ? '#f59e0b' : isActive ? '#34d399' : '#60a5fa';
   ctx.lineWidth = 3;
-  ctx.strokeRect(640, 60, 330, 68);
+  ctx.strokeRect(600, 60, 370, 68);
 
-  ctx.fillStyle = isActive ? '#34d399' : '#93c5fd';
+  ctx.fillStyle = isLocked ? '#fbbf24' : isActive ? '#34d399' : '#93c5fd';
   ctx.font = '700 28px "Space Grotesk", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(isActive ? '● OPEN GALLERY' : '● COMING SOON', 805, 104);
+  ctx.fillText(isLocked ? '🔒 CODE: 2627' : isActive ? '● OPEN GALLERY' : '● COMING SOON', 785, 104);
   ctx.textAlign = 'left';
 
   // Divider line
@@ -351,9 +352,9 @@ export function createEyeLevelPlacardTexture(
   ctx.fillText(titleStr.toUpperCase(), 80, 290);
 
   // Action CTA
-  ctx.fillStyle = isActive ? '#34d399' : '#cbd5e1';
+  ctx.fillStyle = isLocked ? '#fbbf24' : isActive ? '#34d399' : '#cbd5e1';
   ctx.font = '700 36px "Space Grotesk", sans-serif';
-  ctx.fillText(isActive ? 'CLICK DOOR TO OPEN & ENTER ➔' : 'SPACE UNDER CURATION', 80, 400);
+  ctx.fillText(isLocked ? 'CLICK DOOR TO ENTER PASSCODE ➔' : isActive ? 'CLICK DOOR TO OPEN & ENTER ➔' : 'SPACE UNDER CURATION', 80, 400);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;

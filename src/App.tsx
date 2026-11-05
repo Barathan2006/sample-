@@ -12,16 +12,19 @@ import { AboutModal } from './components/AboutModal';
 import { AddMemoryModal } from './components/AddMemoryModal';
 import { EditPhotoModal } from './components/EditPhotoModal';
 import { ManageRoomPhotosModal } from './components/ManageRoomPhotosModal';
+import { RoomPasscodeModal } from './components/RoomPasscodeModal';
 import { ROOMS_DATA } from './data/rooms';
 import { MemoryPhoto, getStoredPhotos, saveStoredPhotos } from './data/photos';
 import { audioSynthesizer } from './utils/audioSynthesizer';
-import { Plus, Images, Edit3 } from 'lucide-react';
+import { Plus, Images, Edit3, Lock } from 'lucide-react';
 
 export default function App() {
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<MemoryPhoto[]>(getStoredPhotos());
   const [selectedPhoto, setSelectedPhoto] = useState<MemoryPhoto | null>(null);
   const [photoToEdit, setPhotoToEdit] = useState<MemoryPhoto | null>(null);
+  const [isRoom1Unlocked, setIsRoom1Unlocked] = useState(false);
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -33,7 +36,18 @@ export default function App() {
     : null;
 
   const handleSelectRoom = (roomId: string) => {
+    if (roomId === 'room-01' && !isRoom1Unlocked) {
+      setIsPasscodeModalOpen(true);
+      return;
+    }
     setCurrentRoomId(roomId);
+    audioSynthesizer.playDoorClick();
+  };
+
+  const handlePasscodeSuccess = () => {
+    setIsRoom1Unlocked(true);
+    setIsPasscodeModalOpen(false);
+    setCurrentRoomId('room-01');
     audioSynthesizer.playDoorClick();
   };
 
@@ -80,6 +94,7 @@ export default function App() {
         onSelectRoom={handleSelectRoom}
         onSelectPhoto={handleSelectPhoto}
         photos={photos}
+        isRoom1Unlocked={isRoom1Unlocked}
       />
 
       {/* 2. Welcome Landing Banner (Visible when at corridor entrance) */}
@@ -109,6 +124,19 @@ export default function App() {
             >
               <Edit3 size={14} className="text-emerald-400" />
               <span>Change / Edit Photos</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsRoom1Unlocked(false);
+                setCurrentRoomId(null);
+                audioSynthesizer.playDoorClick();
+              }}
+              title="Lock Room 01 with passcode 2627 and return to hallway"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900/80 border border-amber-500/30 text-amber-300 hover:bg-neutral-800 text-xs font-medium shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105"
+            >
+              <Lock size={13} className="text-amber-400" />
+              <span>Lock Room</span>
             </button>
 
             <button
@@ -172,6 +200,13 @@ export default function App() {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
+      />
+
+      {/* 10. Room 01 Security Passcode Lock Modal */}
+      <RoomPasscodeModal
+        isOpen={isPasscodeModalOpen}
+        onClose={() => setIsPasscodeModalOpen(false)}
+        onSuccess={handlePasscodeSuccess}
       />
     </div>
   );
