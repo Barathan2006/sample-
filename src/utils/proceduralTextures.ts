@@ -339,7 +339,7 @@ export function createEyeLevelPlacardTexture(
   ctx.fillStyle = isLocked ? '#fbbf24' : isActive ? '#34d399' : '#93c5fd';
   ctx.font = '700 28px "Space Grotesk", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(isLocked ? '🔒 CODE: 2627' : isActive ? '● OPEN GALLERY' : '● COMING SOON', 785, 104);
+  ctx.fillText(isLocked ? '🔒 PASSCODE REQUIRED' : isActive ? '● OPEN GALLERY' : '● COMING SOON', 785, 104);
   ctx.textAlign = 'left';
 
   // Divider line

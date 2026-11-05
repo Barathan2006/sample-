@@ -132,7 +132,7 @@ export default function App() {
                 setCurrentRoomId(null);
                 audioSynthesizer.playDoorClick();
               }}
-              title="Lock Room 01 with passcode 2627 and return to hallway"
+              title="Lock Room 01 and return to corridor"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900/80 border border-amber-500/30 text-amber-300 hover:bg-neutral-800 text-xs font-medium shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105"
             >
               <Lock size={13} className="text-amber-400" />

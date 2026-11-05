@@ -593,7 +593,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       roomNum: r.number,
       roomTitle: r.title,
       status: r.id === 'room-01'
-        ? (stateRef.current.isRoom1Unlocked ? 'ACTIVE' : 'LOCKED (PASSCODE 2627)')
+        ? (stateRef.current.isRoom1Unlocked ? 'ACTIVE' : 'LOCKED')
         : r.status === 'active' ? 'ACTIVE' : 'COMING SOON',
     }));
 

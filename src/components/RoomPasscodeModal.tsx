@@ -103,7 +103,7 @@ export const RoomPasscodeModal: React.FC<RoomPasscodeModalProps> = ({
       setTimeout(() => {
         setPin('');
         setStatus('idle');
-        setStatusMessage('Try again (Code: 2627)');
+        setStatusMessage('Enter 4-digit security code');
       }, 850);
     }
   };
@@ -273,11 +273,11 @@ export const RoomPasscodeModal: React.FC<RoomPasscodeModalProps> = ({
           </button>
         </div>
 
-        {/* Footer Hint & Cancel */}
+        {/* Footer info & Cancel */}
         <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-neutral-400">
           <div className="flex items-center gap-1.5 text-[11px] font-mono text-neutral-400">
-            <KeyRound size={12} className="text-emerald-400" />
-            <span>Keypad Code: 2627</span>
+            <Lock size={12} className="text-amber-400" />
+            <span>Restricted Access</span>
           </div>
 
           <button
