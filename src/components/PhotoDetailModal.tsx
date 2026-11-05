@@ -83,7 +83,7 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   return (
     <>
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-neutral-950/80 backdrop-blur-xl animate-in fade-in duration-200"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-neutral-950/85 backdrop-blur-xl animate-in fade-in duration-200"
         onClick={onClose}
       >
         {/* Modal Container */}
@@ -91,43 +91,19 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
           className="relative w-full max-w-5xl max-h-[92vh] flex flex-col md:flex-row bg-neutral-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl text-white"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Top Floating Actions */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-            {onEditPhoto && (
-              <button
-                onClick={() => onEditPhoto(photo)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-400 hover:bg-emerald-300 text-neutral-950 font-semibold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                title="Change this photo or edit details"
-              >
-                <Edit3 size={13} />
-                <span>Change Photo</span>
-              </button>
-            )}
-
-            {onDeletePhoto && (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                title="Delete this photo album from room"
-              >
-                <Trash2 size={13} />
-                <span>Delete</span>
-              </button>
-            )}
-
-            <button
-              onClick={onClose}
-              className="p-2.5 rounded-full bg-neutral-950/70 border border-white/10 text-white hover:bg-neutral-800 transition-all cursor-pointer shadow-lg hover:scale-105"
-              title="Close (Esc)"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
           {/* Left Side: Photo Frame Container */}
-          <div className="relative flex-1 bg-neutral-950 flex items-center justify-center min-h-[320px] md:min-h-[500px] p-6 sm:p-8 select-none overflow-hidden group">
+          <div className="relative flex-1 bg-neutral-950 flex items-center justify-center min-h-[320px] md:min-h-[520px] p-6 sm:p-8 select-none overflow-hidden group">
             {/* Subtle architectural background grid */}
             <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+
+            {/* Mobile close button for quick exit on small screens */}
+            <button
+              onClick={onClose}
+              className="md:hidden absolute top-3 right-3 z-20 p-2 rounded-full bg-neutral-900/80 border border-white/15 text-neutral-300 hover:text-white cursor-pointer shadow-lg"
+              title="Close (Esc)"
+            >
+              <X size={18} />
+            </button>
 
             {/* Physical Photo Mount */}
             <div className="relative max-h-[75vh] max-w-full flex items-center justify-center p-3 sm:p-4 bg-white/95 rounded-xl shadow-2xl transition-transform duration-300">
@@ -169,17 +145,40 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
           </div>
 
           {/* Right Side: Memory Story Details */}
-          <div className="w-full md:w-[380px] lg:w-[420px] p-6 sm:p-8 flex flex-col justify-between overflow-y-auto bg-neutral-900/95 border-t md:border-t-0 md:border-l border-white/10">
+          <div className="w-full md:w-[400px] lg:w-[440px] p-6 sm:p-7 flex flex-col justify-between overflow-y-auto bg-neutral-900/95 border-t md:border-t-0 md:border-l border-white/10">
             <div>
-              {/* Category & Badge */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-white/10">
-                  <Tag size={12} />
-                  {photo.category}
-                </span>
-                <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-widest">
-                  {photo.type === 'pedestal' ? 'CENTER ALBUM' : photo.type === 'floating' ? 'FLOATING FRAME' : 'WALL GALLERY'}
-                </span>
+              {/* Top Row: Category, Tag, Change Photo & Close Button (No overlapping elements) */}
+              <div className="flex items-center justify-between gap-3 pb-3.5 mb-4 border-b border-white/10">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-white/10">
+                    <Tag size={12} />
+                    {photo.category}
+                  </span>
+                  <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-widest truncate">
+                    {photo.type === 'pedestal' ? 'CENTER ALBUM' : photo.type === 'floating' ? 'FLOATING FRAME' : 'WALL GALLERY'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {onEditPhoto && (
+                    <button
+                      onClick={() => onEditPhoto(photo)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-400 hover:bg-emerald-300 text-neutral-950 font-semibold text-xs shadow-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      title="Change this photo or edit details"
+                    >
+                      <Edit3 size={13} />
+                      <span>Change Photo</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onClose}
+                    className="hidden md:flex p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                    title="Close (Esc)"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Title */}
@@ -225,20 +224,10 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   <span>{copied ? 'Link Copied' : 'Share'}</span>
                 </button>
 
-                {onEditPhoto && (
-                  <button
-                    onClick={() => onEditPhoto(photo)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-emerald-300 border border-emerald-400/20 hover:border-emerald-400/40 transition-all text-xs font-semibold cursor-pointer"
-                  >
-                    <Edit3 size={13} />
-                    <span>Edit</span>
-                  </button>
-                )}
-
                 {onDeletePhoto && (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold cursor-pointer transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/20 text-xs font-semibold cursor-pointer transition-colors"
                     title="Delete photo album specifically"
                   >
                     <Trash2 size={13} />
@@ -248,16 +237,16 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
               </div>
 
               {totalCount > 1 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={handlePrev}
-                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-neutral-300 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-neutral-300 hover:text-white cursor-pointer transition-colors"
                   >
                     PREV
                   </button>
                   <button
                     onClick={handleNext}
-                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-neutral-300 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-neutral-300 hover:text-white cursor-pointer transition-colors"
                   >
                     NEXT
                   </button>
