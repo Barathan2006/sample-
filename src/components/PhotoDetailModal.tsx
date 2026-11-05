@@ -9,7 +9,8 @@ import {
   Camera, 
   Tag, 
   Share2, 
-  Check
+  Check,
+  Edit3
 } from 'lucide-react';
 
 interface PhotoDetailModalProps {
@@ -17,13 +18,15 @@ interface PhotoDetailModalProps {
   allPhotos: MemoryPhoto[];
   onClose: () => void;
   onSelectPhoto: (photo: MemoryPhoto) => void;
+  onEditPhoto?: (photo: MemoryPhoto) => void;
 }
 
 export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   photo,
   allPhotos,
   onClose,
-  onSelectPhoto
+  onSelectPhoto,
+  onEditPhoto,
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -75,14 +78,27 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         className="relative w-full max-w-5xl max-h-[92vh] flex flex-col md:flex-row bg-neutral-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Floating Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-neutral-950/70 border border-white/10 text-white hover:bg-neutral-800 transition-all cursor-pointer shadow-lg hover:scale-105"
-          title="Close (Esc)"
-        >
-          <X size={20} />
-        </button>
+        {/* Top Floating Actions */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          {onEditPhoto && (
+            <button
+              onClick={() => onEditPhoto(photo)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-400 hover:bg-emerald-300 text-neutral-950 font-semibold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              title="Change this photo or edit details"
+            >
+              <Edit3 size={13} />
+              <span>Change Photo</span>
+            </button>
+          )}
+
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded-full bg-neutral-950/70 border border-white/10 text-white hover:bg-neutral-800 transition-all cursor-pointer shadow-lg hover:scale-105"
+            title="Close (Esc)"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         {/* Left Side: Photo Frame Container */}
         <div className="relative flex-1 bg-neutral-950 flex items-center justify-center min-h-[320px] md:min-h-[500px] p-6 sm:p-8 select-none overflow-hidden group">
@@ -173,13 +189,25 @@ export const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
           {/* Footer Actions */}
           <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between">
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors text-xs font-medium cursor-pointer"
-            >
-              {copied ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}
-              <span>{copied ? 'Link Copied' : 'Share Memory'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors text-xs font-medium cursor-pointer"
+              >
+                {copied ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}
+                <span>{copied ? 'Link Copied' : 'Share'}</span>
+              </button>
+
+              {onEditPhoto && (
+                <button
+                  onClick={() => onEditPhoto(photo)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-emerald-300 border border-emerald-400/20 hover:border-emerald-400/40 transition-all text-xs font-semibold cursor-pointer"
+                >
+                  <Edit3 size={13} />
+                  <span>Change / Edit</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <button

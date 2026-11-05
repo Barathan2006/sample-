@@ -10,16 +10,21 @@ import { WelcomeOverlay } from './components/WelcomeOverlay';
 import { PhotoDetailModal } from './components/PhotoDetailModal';
 import { AboutModal } from './components/AboutModal';
 import { AddMemoryModal } from './components/AddMemoryModal';
+import { EditPhotoModal } from './components/EditPhotoModal';
+import { ManageRoomPhotosModal } from './components/ManageRoomPhotosModal';
 import { ROOMS_DATA } from './data/rooms';
 import { MemoryPhoto, getStoredPhotos, saveStoredPhotos } from './data/photos';
 import { audioSynthesizer } from './utils/audioSynthesizer';
-import { Plus, Images } from 'lucide-react';
+import { Plus, Images, Edit3 } from 'lucide-react';
 
 export default function App() {
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<MemoryPhoto[]>(getStoredPhotos());
   const [selectedPhoto, setSelectedPhoto] = useState<MemoryPhoto | null>(null);
+  const [photoToEdit, setPhotoToEdit] = useState<MemoryPhoto | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
 
@@ -53,6 +58,20 @@ export default function App() {
     saveStoredPhotos(updated);
   };
 
+  const handleSavePhoto = (updatedPhoto: MemoryPhoto) => {
+    const updated = photos.map((p) => (p.id === updatedPhoto.id ? updatedPhoto : p));
+    setPhotos(updated);
+    saveStoredPhotos(updated);
+    if (selectedPhoto?.id === updatedPhoto.id) {
+      setSelectedPhoto(updatedPhoto);
+    }
+  };
+
+  const handleOpenEditPhoto = (photo: MemoryPhoto) => {
+    setPhotoToEdit(photo);
+    setIsEditModalOpen(true);
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#0f1115] select-none">
       {/* 1. Main 3D House Environment Engine */}
@@ -69,7 +88,7 @@ export default function App() {
         onExploreRoom01={() => handleSelectRoom('room-01')}
       />
 
-      {/* 3. Room 01 In-Room Action Strip (Quick Add Memory & Album Trigger) */}
+      {/* 3. Room 01 In-Room Action Strip (Quick Add, Change Photos & Album Trigger) */}
       {currentRoomId === 'room-01' && (
         <div className="pointer-events-none fixed top-24 right-6 z-20 animate-in fade-in slide-in-from-right-4 duration-300">
           <div className="pointer-events-auto flex items-center gap-2">
@@ -82,6 +101,14 @@ export default function App() {
             >
               <Images size={14} className="text-emerald-400" />
               <span>Open Center Album</span>
+            </button>
+
+            <button
+              onClick={() => setIsManageModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900/80 border border-emerald-500/30 text-emerald-300 hover:bg-neutral-800 text-xs font-medium shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105"
+            >
+              <Edit3 size={14} className="text-emerald-400" />
+              <span>Change / Edit Photos</span>
             </button>
 
             <button
@@ -107,22 +134,41 @@ export default function App() {
         totalMemoriesCount={photos.length}
       />
 
-      {/* 6. Photo Enlargement & Detail Modal */}
+      {/* 5. Photo Enlargement & Detail Modal with Edit Trigger */}
       <PhotoDetailModal
         photo={selectedPhoto}
         allPhotos={photos}
         onClose={() => setSelectedPhoto(null)}
         onSelectPhoto={setSelectedPhoto}
+        onEditPhoto={handleOpenEditPhoto}
       />
 
-      {/* 7. Add Custom Memory Modal */}
+      {/* 6. Change / Edit Photo Modal */}
+      <EditPhotoModal
+        photo={photoToEdit}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSavePhoto={handleSavePhoto}
+      />
+
+      {/* 7. Manage Room 01 All Photos Modal */}
+      <ManageRoomPhotosModal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        photos={photos}
+        onSelectPhotoToView={(p) => setSelectedPhoto(p)}
+        onSelectPhotoToEdit={handleOpenEditPhoto}
+        onOpenAddNew={() => setIsAddModalOpen(true)}
+      />
+
+      {/* 8. Add Custom Memory Modal */}
       <AddMemoryModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddPhoto={handleAddPhoto}
       />
 
-      {/* 8. About Architectural Specs Modal */}
+      {/* 9. About Architectural Specs Modal */}
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}

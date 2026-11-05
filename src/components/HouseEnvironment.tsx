@@ -61,16 +61,17 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
 
   const mountedPhotoIdsRef = useRef<Set<string>>(new Set());
   const addPhotoToSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
+  const updatePhotoInSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
 
-  // Dynamically sync newly added photos into the live 3D Room 01 scene
+  // Dynamically sync newly added or changed/edited photos into the live 3D Room 01 scene
   useEffect(() => {
-    if (addPhotoToSceneRef.current) {
-      photos.forEach((p) => {
-        if (!mountedPhotoIdsRef.current.has(p.id) && p.type !== 'pedestal') {
-          addPhotoToSceneRef.current?.(p);
-        }
-      });
-    }
+    photos.forEach((p) => {
+      if (addPhotoToSceneRef.current && !mountedPhotoIdsRef.current.has(p.id) && p.type !== 'pedestal') {
+        addPhotoToSceneRef.current?.(p);
+      } else if (updatePhotoInSceneRef.current && mountedPhotoIdsRef.current.has(p.id)) {
+        updatePhotoInSceneRef.current?.(p);
+      }
+    });
   }, [photos]);
 
   // Sync currentRoomId into stateRef
@@ -238,7 +239,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     const roomGates: RoomDoorGate[] = [];
     stateRef.current.roomGates = roomGates;
     const interactiveDoors: { mesh: THREE.Mesh; roomId: string; signMesh: THREE.Mesh }[] = [];
-    const interactivePhotos: { mesh: THREE.Mesh; photo: MemoryPhoto; frameGroup: THREE.Group }[] = [];
+    const interactivePhotos: { mesh: THREE.Mesh; photo: MemoryPhoto; frameGroup: THREE.Group; photoMaterial?: THREE.MeshStandardMaterial }[] = [];
     const floatingMeshObjects: { group: THREE.Group; baseY: number; phase: number; rotSpeed: number }[] = [];
 
     // --- BUILD ARCHITECTURE ---
@@ -1003,10 +1004,30 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
         mesh: hitMesh,
         photo,
         frameGroup,
+        photoMaterial,
       });
 
       return frameGroup;
     }
+
+    // Dynamic real-time photo updater for Room 01 (updates live 3D textures when photo is edited)
+    updatePhotoInSceneRef.current = (updatedPhoto: MemoryPhoto) => {
+      const item = interactivePhotos.find((p) => p.photo.id === updatedPhoto.id);
+      if (item) {
+        item.photo = updatedPhoto;
+        if (item.photoMaterial) {
+          loadColorPhotoTexture(
+            updatedPhoto.imageUrl,
+            (newTex) => {
+              if (item.photoMaterial) {
+                item.photoMaterial.map = newTex;
+                item.photoMaterial.needsUpdate = true;
+              }
+            }
+          );
+        }
+      }
+    };
 
     // --- 6. RAYCASTING & INTERACTION EVENTS ---
     const raycaster = new THREE.Raycaster();
@@ -1337,6 +1358,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       ceilingMaterial.dispose();
       mountedPhotoIdsRef.current.clear();
       addPhotoToSceneRef.current = null;
+      updatePhotoInSceneRef.current = null;
     };
   }, []);
 
