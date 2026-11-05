@@ -65,6 +65,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
   const mountedPhotoIdsRef = useRef<Set<string>>(new Set());
   const addPhotoToSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
   const updatePhotoInSceneRef = useRef<((photo: MemoryPhoto) => void) | null>(null);
+  const removePhotoFromSceneRef = useRef<((photoId: string) => void) | null>(null);
 
   // Sync isRoom1Unlocked into state and trigger gate swing
   useEffect(() => {
@@ -78,8 +79,18 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
     }
   }, [isRoom1Unlocked]);
 
-  // Dynamically sync newly added or changed/edited photos into the live 3D Room 01 scene
+  // Dynamically sync newly added, changed/edited, or deleted photos into the live 3D Room 01 scene
   useEffect(() => {
+    const activePhotoIds = new Set(photos.map((p) => p.id));
+
+    // 1. Remove deleted photos from 3D scene
+    mountedPhotoIdsRef.current.forEach((mountedId) => {
+      if (!activePhotoIds.has(mountedId)) {
+        removePhotoFromSceneRef.current?.(mountedId);
+      }
+    });
+
+    // 2. Add newly added or update edited photos
     photos.forEach((p) => {
       if (addPhotoToSceneRef.current && !mountedPhotoIdsRef.current.has(p.id) && p.type !== 'pedestal') {
         addPhotoToSceneRef.current?.(p);
@@ -1046,6 +1057,19 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       }
     };
 
+    // Dynamic real-time photo remover for Room 01 (removes 3D frame mesh when photo is deleted)
+    removePhotoFromSceneRef.current = (photoId: string) => {
+      const itemIndex = interactivePhotos.findIndex((p) => p.photo.id === photoId);
+      if (itemIndex !== -1) {
+        const item = interactivePhotos[itemIndex];
+        if (item.frameGroup && item.frameGroup.parent) {
+          item.frameGroup.parent.remove(item.frameGroup);
+        }
+        interactivePhotos.splice(itemIndex, 1);
+        mountedPhotoIdsRef.current.delete(photoId);
+      }
+    };
+
     // --- 6. RAYCASTING & INTERACTION EVENTS ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2(-1000, -1000);
@@ -1378,6 +1402,7 @@ export const HouseEnvironment: React.FC<HouseEnvironmentProps> = ({
       mountedPhotoIdsRef.current.clear();
       addPhotoToSceneRef.current = null;
       updatePhotoInSceneRef.current = null;
+      removePhotoFromSceneRef.current = null;
     };
   }, []);
 

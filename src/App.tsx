@@ -14,7 +14,7 @@ import { EditPhotoModal } from './components/EditPhotoModal';
 import { ManageRoomPhotosModal } from './components/ManageRoomPhotosModal';
 import { RoomPasscodeModal } from './components/RoomPasscodeModal';
 import { ROOMS_DATA } from './data/rooms';
-import { MemoryPhoto, getStoredPhotos, saveStoredPhotos } from './data/photos';
+import { MemoryPhoto, getStoredPhotos, saveStoredPhotos, INITIAL_PHOTOS } from './data/photos';
 import { audioSynthesizer } from './utils/audioSynthesizer';
 import { Plus, Images, Edit3, Lock } from 'lucide-react';
 
@@ -79,6 +79,26 @@ export default function App() {
     if (selectedPhoto?.id === updatedPhoto.id) {
       setSelectedPhoto(updatedPhoto);
     }
+  };
+
+  const handleDeletePhoto = (photoId: string) => {
+    const updated = photos.filter((p) => p.id !== photoId);
+    setPhotos(updated);
+    saveStoredPhotos(updated);
+    if (selectedPhoto?.id === photoId) {
+      setSelectedPhoto(null);
+    }
+    if (photoToEdit?.id === photoId) {
+      setPhotoToEdit(null);
+      setIsEditModalOpen(false);
+    }
+    audioSynthesizer.playDoorClick();
+  };
+
+  const handleRestoreDefaults = () => {
+    setPhotos(INITIAL_PHOTOS);
+    saveStoredPhotos(INITIAL_PHOTOS);
+    audioSynthesizer.playAccessGranted();
   };
 
   const handleOpenEditPhoto = (photo: MemoryPhoto) => {
@@ -162,13 +182,14 @@ export default function App() {
         totalMemoriesCount={photos.length}
       />
 
-      {/* 5. Photo Enlargement & Detail Modal with Edit Trigger */}
+      {/* 5. Photo Enlargement & Detail Modal with Edit & Delete Trigger */}
       <PhotoDetailModal
         photo={selectedPhoto}
         allPhotos={photos}
         onClose={() => setSelectedPhoto(null)}
         onSelectPhoto={setSelectedPhoto}
         onEditPhoto={handleOpenEditPhoto}
+        onDeletePhoto={handleDeletePhoto}
       />
 
       {/* 6. Change / Edit Photo Modal */}
@@ -177,6 +198,7 @@ export default function App() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSavePhoto={handleSavePhoto}
+        onDeletePhoto={handleDeletePhoto}
       />
 
       {/* 7. Manage Room 01 All Photos Modal */}
@@ -187,6 +209,8 @@ export default function App() {
         onSelectPhotoToView={(p) => setSelectedPhoto(p)}
         onSelectPhotoToEdit={handleOpenEditPhoto}
         onOpenAddNew={() => setIsAddModalOpen(true)}
+        onDeletePhoto={handleDeletePhoto}
+        onRestoreDefaults={handleRestoreDefaults}
       />
 
       {/* 8. Add Custom Memory Modal */}

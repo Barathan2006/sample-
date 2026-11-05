@@ -13,7 +13,8 @@ import {
   Tag,
   Calendar,
   MapPin,
-  Camera
+  Camera,
+  Trash2
 } from 'lucide-react';
 import { audioSynthesizer } from '../utils/audioSynthesizer';
 
@@ -22,6 +23,7 @@ interface EditPhotoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSavePhoto: (updatedPhoto: MemoryPhoto) => void;
+  onDeletePhoto?: (photoId: string) => void;
 }
 
 export const EditPhotoModal: React.FC<EditPhotoModalProps> = ({
@@ -29,7 +31,9 @@ export const EditPhotoModal: React.FC<EditPhotoModalProps> = ({
   isOpen,
   onClose,
   onSavePhoto,
+  onDeletePhoto,
 }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sourceMode, setSourceMode] = useState<'upload' | 'url'>('upload');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -484,13 +488,27 @@ export const EditPhotoModal: React.FC<EditPhotoModalProps> = ({
 
           {/* Footer Save & Cancel Buttons */}
           <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              {onDeletePhoto && photo && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                  title="Delete this photo album from room"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Photo</span>
+                </button>
+              )}
+            </div>
 
             <button
               type="submit"
@@ -503,6 +521,60 @@ export const EditPhotoModal: React.FC<EditPhotoModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Confirmation Modal for Specifically Deleting Photo Album */}
+      {showDeleteConfirm && photo && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md bg-neutral-900 border border-white/15 rounded-3xl p-6 sm:p-7 shadow-2xl text-white animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/25 text-rose-400">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h4 className="font-semibold text-lg text-white">Delete Photo Album?</h4>
+                <p className="text-xs text-neutral-400 font-mono">
+                  {photo.type === 'pedestal' ? 'CENTERPIECE ALBUM' : 'WALL GALLERY FRAME'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-neutral-300 mb-2 leading-relaxed">
+              Are you sure you want to delete <span className="font-semibold text-white">"{photo.title}"</span>?
+            </p>
+            <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
+              This photo album will be permanently deleted from Room 01, and its physical frame will be removed from the 3D gallery walls.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white text-xs font-medium cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  onDeletePhoto?.(photo.id);
+                  onClose();
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-lg shadow-rose-500/20 cursor-pointer transition-all hover:scale-105 active:scale-95"
+              >
+                <Trash2 size={14} />
+                <span>Yes, Delete Album</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
